@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { theme } from '../styles/theme';
+import logo from '../assets/logo.png';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +25,16 @@ export const LandingPage: React.FC = () => {
           textAlign: 'center',
         }}
       >
+        <img
+          src={logo}
+          alt="Toit Nups"
+          style={{
+            width: '200px',
+            height: 'auto',
+            marginBottom: theme.spacing.xl,
+            objectFit: 'contain',
+          }}
+        />
         <h1
           style={{
             fontSize: theme.typography.fontSize['4xl'],

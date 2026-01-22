@@ -1,18 +1,24 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { theme } from '../styles/theme';
+import dashboardIcon from '../assets/dashboard.png';
+import exploreIcon from '../assets/explore.png';
+import chatbotIcon from '../assets/chatbot.png';
+import budgetIcon from '../assets/budget.png';
+import checklistIcon from '../assets/checklist.png';
+import savedIcon from '../assets/saved.png';
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
 const navItems = [
-  { path: '/dashboard', label: 'Plan', icon: '📋' },
-  { path: '/explore', label: 'Explore', icon: '🔍' },
-  { path: '/chatbot', label: 'Assistant', icon: '💬' },
-  { path: '/budget', label: 'Budget', icon: '💰' },
-  { path: '/checklist', label: 'Checklist', icon: '✅' },
-  { path: '/saved', label: 'Saved', icon: '⭐' },
+  { path: '/dashboard', label: 'Plan', icon: dashboardIcon },
+  { path: '/explore', label: 'Explore', icon: exploreIcon },
+  { path: '/chatbot', label: 'Assistant', icon: chatbotIcon },
+  { path: '/budget', label: 'Budget', icon: budgetIcon },
+  { path: '/checklist', label: 'Checklist', icon: checklistIcon },
+  { path: '/saved', label: 'Saved', icon: savedIcon },
 ];
 
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
@@ -70,7 +76,17 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 transition: 'color 0.2s ease',
               }}
             >
-              <span style={{ fontSize: theme.typography.fontSize.lg }}>{item.icon}</span>
+              <img
+                src={item.icon}
+                alt={item.label}
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  objectFit: 'contain',
+                  opacity: isActive ? 1 : 0.6,
+                  transition: 'opacity 0.2s ease',
+                }}
+              />
               <span>{item.label}</span>
             </Link>
           );
