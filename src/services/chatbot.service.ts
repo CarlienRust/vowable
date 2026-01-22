@@ -151,15 +151,20 @@ export function findVendorMatches(
 
       const reasons = generateWhyReasons(listing, matchResult, wedding);
 
-      return {
+      const match: VendorMatch = {
         listing,
         score: matchResult.score,
         reasons,
-        distance: matchResult.distance_km ?? undefined,
         breakdown: matchResult.breakdown,
       };
+
+      if (matchResult.distance_km !== null) {
+        match.distance = matchResult.distance_km;
+      }
+
+      return match;
     })
-    .filter((m): m is VendorMatch => m !== null && m !== undefined);
+    .filter((m): m is VendorMatch => m !== null);
 
   return matches;
 }
