@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWeddingPlanStore } from '../state/useWeddingPlanStore';
+import { authService } from '../services/auth.service';
 import { formatDate } from '../domain/format';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -12,11 +13,22 @@ export const DashboardPage: React.FC = () => {
   const wedding = useWeddingPlanStore((state) => state.wedding);
   const checklistItems = useWeddingPlanStore((state) => state.checklistItems);
   const savedItems = useWeddingPlanStore((state) => state.savedItems);
-  const loadFromStorage = useWeddingPlanStore((state) => state.loadFromStorage);
+  const loadFromSupabase = useWeddingPlanStore((state) => state.loadFromSupabase);
+  const userId = useWeddingPlanStore((state) => state.userId);
 
   useEffect(() => {
-    loadFromStorage();
-  }, [loadFromStorage]);
+    const loadData = async () => {
+      if (!userId) {
+        const user = await authService.getUser();
+        if (user) {
+          await loadFromSupabase(user.id);
+        }
+      } else {
+        await loadFromSupabase(userId);
+      }
+    };
+    loadData();
+  }, [userId, loadFromSupabase]);
 
   if (!wedding || !wedding.location) {
     return (

@@ -1,26 +1,49 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Listing, ListingType, PriceBand } from '../domain/types';
 import { useWeddingPlanStore } from '../state/useWeddingPlanStore';
+import { listingsService } from '../services/listings.service';
+import { enquiriesService } from '../services/enquiries.service';
 import { filterByRadius } from '../domain/geo';
 import { ListingCard } from '../components/listings/ListingCard';
 import { FiltersBar } from '../components/listings/FiltersBar';
 import { MapPlaceholder } from '../components/listings/MapPlaceholder';
+import { EnquiryModal } from '../components/listings/EnquiryModal';
 import { Button } from '../components/ui/Button';
-import seedListings from '../data/seed_listings.western_cape.json';
 import { theme } from '../styles/theme';
 
 type ViewMode = 'list' | 'map';
 
 export const ExplorePage: React.FC = () => {
   const wedding = useWeddingPlanStore((state) => state.wedding);
+  const weddingId = useWeddingPlanStore((state) => state.weddingId);
   const addSavedItem = useWeddingPlanStore((state) => state.addSavedItem);
+  const userId = useWeddingPlanStore((state) => state.userId);
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedType, setSelectedType] = useState<ListingType | 'all'>('all');
   const [selectedPriceBand, setSelectedPriceBand] = useState<PriceBand | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [listings, setListings] = useState<any[]>([]);
+  const [enquiryModalListing, setEnquiryModalListing] = useState<Listing | null>(null);
+  const [enquiryStatuses, setEnquiryStatuses] = useState<Record<string, string>>({});
 
-  const listings = seedListings as Listing[];
+  useEffect(() => {
+    const loadListings = async () => {
+      const data = await listingsService.getAllListings();
+      setListings(data);
+
+      // Load enquiry statuses
+      if (userId) {
+        const enquiries = await enquiriesService.getEnquiries(userId);
+        const statusMap: Record<string, string> = {};
+        enquiries.forEach((enq) => {
+          statusMap[enq.listing_id] = enq.status;
+        });
+        setEnquiryStatuses(statusMap);
+      }
+    };
+    loadListings();
+  }, [userId]);
 
   const filteredListings = useMemo(() => {
     let filtered = listings;
@@ -63,18 +86,25 @@ export const ExplorePage: React.FC = () => {
     return filtered.map((listing) => ({ listing, distance: undefined }));
   }, [listings, selectedType, selectedPriceBand, searchQuery, wedding]);
 
-  const handleSave = (listing: Listing) => {
-    const savedItem = {
-      id: `saved-${Date.now()}`,
-      listingId: listing.id,
-      listing,
-      notes: '',
-      estimated_cost: 0,
-      status: 'shortlisted' as const,
-      savedAt: new Date().toISOString(),
-    };
-    addSavedItem(savedItem);
+  const handleSave = async (listing: Listing) => {
+    await addSavedItem(listing);
     alert('Listing saved to your shortlist!');
+  };
+
+  const handleEnquire = (listing: Listing) => {
+    setEnquiryModalListing(listing);
+  };
+
+  const handleEnquirySaved = async () => {
+    if (userId && enquiryModalListing) {
+      const enquiries = await enquiriesService.getEnquiries(userId);
+      const statusMap: Record<string, string> = {};
+      enquiries.forEach((enq) => {
+        statusMap[enq.listing_id] = enq.status;
+      });
+      setEnquiryStatuses(statusMap);
+    }
+    setEnquiryModalListing(null);
   };
 
   return (
@@ -146,8 +176,20 @@ export const ExplorePage: React.FC = () => {
               listing={listing}
               distance={distance}
               onSave={handleSave}
+              onEnquire={handleEnquire}
+              enquiryStatus={enquiryStatuses[listing.id]}
             />
           ))}
+          {enquiryModalListing && userId && (
+            <EnquiryModal
+              listing={enquiryModalListing}
+              wedding={wedding}
+              userId={userId}
+              weddingId={weddingId}
+              onClose={() => setEnquiryModalListing(null)}
+              onSave={handleEnquirySaved}
+            />
+          )}
         </div>
       ) : (
         <MapPlaceholder />

@@ -13,7 +13,7 @@ import { Category } from '../domain/match';
 import { VendorIntakeForm } from '../components/chatbot/VendorIntakeForm';
 import { ChatbotInterface } from '../components/chatbot/ChatbotInterface';
 import { Button } from '../components/ui/Button';
-import seedListings from '../data/seed_listings.western_cape.json';
+import { listingsService } from '../services/listings.service';
 import { theme } from '../styles/theme';
 
 export const ChatbotPage: React.FC = () => {
@@ -25,6 +25,7 @@ export const ChatbotPage: React.FC = () => {
   const [currentPreferences, setCurrentPreferences] = useState<VendorPreferences | null>(null);
   const [messages, setMessages] = useState<ChatbotMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [listings, setListings] = useState<Listing[]>([]);
 
   // Legacy form preferences interface
   interface FormVendorPreferences {
@@ -38,7 +39,13 @@ export const ChatbotPage: React.FC = () => {
     themeKeywords?: string[];
   }
 
-  const listings = seedListings as Listing[];
+  useEffect(() => {
+    const loadListings = async () => {
+      const data = await listingsService.getAllListings();
+      setListings(data);
+    };
+    loadListings();
+  }, []);
 
   useEffect(() => {
     if (wedding) {
@@ -60,7 +67,7 @@ What would you like to find?`,
     }
   }, [wedding]);
 
-  const handleIntakeSubmit = (formPrefs: FormVendorPreferences) => {
+  const handleIntakeSubmit = async (formPrefs: FormVendorPreferences) => {
     setIsProcessing(true);
 
     // Convert form format to new VendorPreferences format
@@ -117,7 +124,7 @@ What would you like to find?`,
     return ['high'];
   }
 
-  const handleSendMessage = (message: string) => {
+  const handleSendMessage = async (message: string) => {
     if (!currentPreferences) {
       // If no preferences set, treat as new search
       setShowIntake(true);
@@ -141,34 +148,23 @@ What would you like to find?`,
     setCurrentPreferences(updatedPreferences);
 
     // Re-run search
-    setTimeout(() => {
-      const matches = findVendorMatches(listings, updatedPreferences, wedding, savedItems);
-      const explanation = generateExplanation(matches, updatedPreferences, wedding);
+    const matches = findVendorMatches(listings, updatedPreferences, wedding, savedItems);
+    const explanation = generateExplanation(matches, updatedPreferences, wedding);
 
-      const assistantMessage: ChatbotMessage = {
-        role: 'assistant',
-        content: explanation,
-        explanation: matches.length > 0 ? `Updated search results based on your request.` : undefined,
-        listings: matches.slice(0, 5).map((m) => m.listing),
-        timestamp: new Date().toISOString(),
-      };
+    const assistantMessage: ChatbotMessage = {
+      role: 'assistant',
+      content: explanation,
+      explanation: matches.length > 0 ? `Updated search results based on your request.` : undefined,
+      listings: matches.slice(0, 5).map((m) => m.listing),
+      timestamp: new Date().toISOString(),
+    };
 
-      setMessages((prev) => [...prev, assistantMessage]);
-      setIsProcessing(false);
-    }, 500);
+    setMessages((prev) => [...prev, assistantMessage]);
+    setIsProcessing(false);
   };
 
-  const handleSaveListing = (listing: Listing) => {
-    const savedItem = {
-      id: `saved-${Date.now()}`,
-      listingId: listing.id,
-      listing,
-      notes: '',
-      estimated_cost: 0,
-      status: 'shortlisted' as const,
-      savedAt: new Date().toISOString(),
-    };
-    addSavedItem(savedItem);
+  const handleSaveListing = async (listing: Listing) => {
+    await addSavedItem(listing);
   };
 
   const handleNewSearch = () => {
@@ -190,16 +186,20 @@ What would you like to find?`,
     );
   }
 
+
   return (
     <div
+      data-chatbot-container
       style={{
         maxWidth: '1000px',
         margin: '0 auto',
         padding: theme.spacing.xl,
         backgroundColor: theme.colors.background,
-        height: 'calc(100vh - 200px)',
+        height: 'calc(100vh - 180px)',
+        maxHeight: 'calc(100vh - 180px)',
         display: 'flex',
         flexDirection: 'column',
+        overflow: 'hidden',
       }}
     >
       <div

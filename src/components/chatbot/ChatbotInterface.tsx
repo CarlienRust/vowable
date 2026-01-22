@@ -22,7 +22,10 @@ export const ChatbotInterface: React.FC<ChatbotInterfaceProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Use requestAnimationFrame to ensure DOM is updated
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
   }, [messages]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -39,14 +42,19 @@ export const ChatbotInterface: React.FC<ChatbotInterfaceProps> = ({
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
+        maxHeight: '100%',
         backgroundColor: theme.colors.background,
+        overflow: 'hidden',
       }}
     >
       <div
+        data-messages-container
         style={{
           flex: 1,
           overflowY: 'auto',
+          overflowX: 'hidden',
           padding: theme.spacing.lg,
+          minHeight: 0,
         }}
       >
         {messages.length === 0 && (
@@ -71,6 +79,7 @@ export const ChatbotInterface: React.FC<ChatbotInterfaceProps> = ({
       </div>
 
       <form
+        data-chatbot-form
         onSubmit={handleSubmit}
         style={{
           padding: theme.spacing.md,

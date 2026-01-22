@@ -12,12 +12,42 @@ import { theme } from '../styles/theme';
 
 export const SavedPage: React.FC = () => {
   const savedItems = useWeddingPlanStore((state) => state.savedItems);
+  const wedding = useWeddingPlanStore((state) => state.wedding);
+  const weddingId = useWeddingPlanStore((state) => state.weddingId);
   const updateSavedItem = useWeddingPlanStore((state) => state.updateSavedItem);
   const removeSavedItem = useWeddingPlanStore((state) => state.removeSavedItem);
+  const loadFromSupabase = useWeddingPlanStore((state) => state.loadFromSupabase);
+  const userId = useWeddingPlanStore((state) => state.userId);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState('');
   const [editCost, setEditCost] = useState('');
+  const [enquiryModalListing, setEnquiryModalListing] = useState<any>(null);
+  const [enquiryStatuses, setEnquiryStatuses] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!userId) {
+        const user = await authService.getUser();
+        if (user) {
+          await loadFromSupabase(user.id);
+        }
+      } else {
+        await loadFromSupabase(userId);
+      }
+
+      // Load enquiry statuses
+      if (userId) {
+        const enquiries = await enquiriesService.getEnquiries(userId);
+        const statusMap: Record<string, string> = {};
+        enquiries.forEach((enq) => {
+          statusMap[enq.listing_id] = enq.status;
+        });
+        setEnquiryStatuses(statusMap);
+      }
+    };
+    loadData();
+  }, [userId, loadFromSupabase]);
 
   const handleEdit = (item: SavedItem) => {
     setEditingId(item.id);
@@ -25,16 +55,16 @@ export const SavedPage: React.FC = () => {
     setEditCost(item.estimated_cost.toString());
   };
 
-  const handleSaveEdit = (id: string) => {
-    updateSavedItem(id, {
+  const handleSaveEdit = async (id: string) => {
+    await updateSavedItem(id, {
       notes: editNotes,
       estimated_cost: parseFloat(editCost) || 0,
     });
     setEditingId(null);
   };
 
-  const handleStatusChange = (id: string, status: SavedItemStatus) => {
-    updateSavedItem(id, { status });
+  const handleStatusChange = async (id: string, status: SavedItemStatus) => {
+    await updateSavedItem(id, { status });
   };
 
   const statusOptions = [
@@ -118,20 +148,34 @@ export const SavedPage: React.FC = () => {
               >
                 {item.listing.location_name} • {item.listing.type}
               </p>
-              <div style={{ display: 'flex', gap: theme.spacing.xs, marginBottom: theme.spacing.sm }}>
+              <div style={{ display: 'flex', gap: theme.spacing.xs, marginBottom: theme.spacing.sm, flexWrap: 'wrap' }}>
                 <Tag variant={item.status === 'booked' ? 'success' : 'default'}>
                   {item.status}
                 </Tag>
                 <Tag variant="accent">{item.listing.price_band}</Tag>
+                {enquiryStatuses[item.listing.id] && (
+                  <Tag variant={enquiryStatuses[item.listing.id] === 'booked' ? 'success' : 'default'}>
+                    Enquiry: {enquiryStatuses[item.listing.id]}
+                  </Tag>
+                )}
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => removeSavedItem(item.id)}
-            >
-              Remove
-            </Button>
+            <div style={{ display: 'flex', gap: theme.spacing.sm }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEnquiryModalListing(item.listing)}
+              >
+                Enquire
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => removeSavedItem(item.id)}
+              >
+                Remove
+              </Button>
+            </div>
           </div>
 
           {editingId === item.id ? (
@@ -215,6 +259,24 @@ export const SavedPage: React.FC = () => {
           )}
         </Card>
       ))}
+      {enquiryModalListing && userId && (
+        <EnquiryModal
+          listing={enquiryModalListing}
+          wedding={wedding}
+          userId={userId}
+          weddingId={weddingId}
+          onClose={() => setEnquiryModalListing(null)}
+          onSave={async () => {
+            const enquiries = await enquiriesService.getEnquiries(userId);
+            const statusMap: Record<string, string> = {};
+            enquiries.forEach((enq) => {
+              statusMap[enq.listing_id] = enq.status;
+            });
+            setEnquiryStatuses(statusMap);
+            setEnquiryModalListing(null);
+          }}
+        />
+      )}
     </div>
   );
 };

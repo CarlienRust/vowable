@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ChecklistItem } from '../domain/types';
 import { useWeddingPlanStore } from '../state/useWeddingPlanStore';
 import { ChecklistItemRow } from '../components/checklist/ChecklistItemRow';
@@ -13,14 +13,39 @@ export const ChecklistPage: React.FC = () => {
   const toggleChecklistItem = useWeddingPlanStore((state) => state.toggleChecklistItem);
   const toggleReminder = useWeddingPlanStore((state) => state.toggleReminder);
   const initializeChecklist = useWeddingPlanStore((state) => state.initializeChecklist);
-  const loadFromStorage = useWeddingPlanStore((state) => state.loadFromStorage);
+  const weddingId = useWeddingPlanStore((state) => state.weddingId);
+  const hasInitializedChecklist = useRef(false);
 
+  // Only initialize checklist if wedding exists but checklist is empty
+  // Don't load data here - App.tsx already handles that
   useEffect(() => {
-    loadFromStorage();
-    if (wedding && checklistItems.length === 0) {
-      initializeChecklist();
+    // Only initialize checklist if we have a wedding and no checklist items yet
+    // Don't try to load data - that's handled by App.tsx
+    if (!wedding || !weddingId || hasInitializedChecklist.current || checklistItems.length > 0) {
+      return;
     }
-  }, [loadFromStorage, wedding, checklistItems.length, initializeChecklist]);
+    
+    hasInitializedChecklist.current = true;
+    let cancelled = false;
+    
+    // Use store.getState() to avoid including function in dependencies
+    // Defer to next tick to avoid React error #185
+    setTimeout(async () => {
+      if (cancelled) return;
+      
+      try {
+        const store = useWeddingPlanStore.getState();
+        await store.initializeChecklist();
+      } catch (error) {
+        console.error('Error initializing checklist:', error);
+        hasInitializedChecklist.current = false; // Allow retry on error
+      }
+    }, 0);
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [wedding, weddingId, checklistItems.length]); // Removed initializeChecklist from dependencies
 
   if (!wedding) {
     return (
@@ -141,7 +166,7 @@ export const ChecklistPage: React.FC = () => {
           <p style={{ color: theme.colors.text.secondary, marginBottom: theme.spacing.md }}>
             No checklist items yet. Complete onboarding to generate your personalized checklist.
           </p>
-          <Button onClick={() => initializeChecklist()}>Generate Checklist</Button>
+          <Button onClick={async () => await initializeChecklist()}>Generate Checklist</Button>
         </Card>
       )}
     </div>

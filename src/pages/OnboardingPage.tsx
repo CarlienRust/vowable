@@ -62,7 +62,7 @@ export const OnboardingPage: React.FC = () => {
   const [color3, setColor3] = useState(existingWedding?.themeColors[2] || '');
   const [priorities, setPriorities] = useState<Priority[]>(existingWedding?.priorities || []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Simple geocoding stub - in real app would use geocoding service
@@ -94,7 +94,7 @@ export const OnboardingPage: React.FC = () => {
       priorities: priorities.slice(0, 3),
     };
 
-    setWedding(wedding);
+    await setWedding(wedding);
     navigate('/dashboard');
   };
 

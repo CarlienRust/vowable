@@ -1,5 +1,6 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { authService } from '../services/auth.service';
 import { theme } from '../styles/theme';
 import dashboardIcon from '../assets/dashboard.png';
 import exploreIcon from '../assets/explore.png';
@@ -23,6 +24,26 @@ const navItems = [
 
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const currentUser = await authService.getUser();
+      setUser(currentUser);
+      if (currentUser) {
+        const profile = await authService.getProfile(currentUser.id);
+        setIsAdmin(profile?.is_admin || false);
+      }
+    };
+    checkAdmin();
+  }, []);
+
+  const handleSignOut = async () => {
+    await authService.signOut();
+    navigate('/');
+  };
 
   return (
     <div
@@ -33,10 +54,60 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         backgroundColor: theme.colors.background,
       }}
     >
+      {user && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: theme.colors.surface,
+            borderBottom: `1px solid ${theme.colors.border}`,
+            padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            zIndex: 999,
+          }}
+        >
+          <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.text.secondary }}>
+            {user.email}
+          </div>
+          <div style={{ display: 'flex', gap: theme.spacing.md, alignItems: 'center' }}>
+            {isAdmin && (
+              <Link
+                to="/admin/listings/new"
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.accent.primary,
+                  textDecoration: 'none',
+                }}
+              >
+                Add Listing
+              </Link>
+            )}
+            <button
+              onClick={handleSignOut}
+              style={{
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.text.secondary,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      )}
+
       <main
         style={{
           flex: 1,
           paddingBottom: '80px', // Space for bottom nav
+          paddingTop: user ? '60px' : '0', // Space for top bar
         }}
       >
         {children}

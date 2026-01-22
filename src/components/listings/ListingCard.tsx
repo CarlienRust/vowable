@@ -2,14 +2,22 @@ import React from 'react';
 import { Listing } from '../../domain/types';
 import { Card } from '../ui/Card';
 import { Tag } from '../ui/Tag';
-import { formatDistance } from '../../domain/format';
+import { formatDistance, formatCurrency } from '../../domain/format';
 import { theme } from '../../styles/theme';
 
 interface ListingCardProps {
-  listing: Listing;
+  listing: Listing & {
+    price_type?: 'from' | 'per_person' | 'package' | 'quote_only';
+    price_min?: number | null;
+    price_max?: number | null;
+    pricing_notes?: string | null;
+    last_verified_at?: string | null;
+  };
   distance?: number;
   onSave?: (listing: Listing) => void;
   onView?: (listing: Listing) => void;
+  onEnquire?: (listing: Listing) => void;
+  enquiryStatus?: string;
 }
 
 export const ListingCard: React.FC<ListingCardProps> = ({
@@ -17,6 +25,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   distance,
   onSave,
   onView,
+  onEnquire,
+  enquiryStatus,
 }) => {
   const priceBandColors: Record<string, string> = {
     low: theme.colors.success,
@@ -101,6 +111,46 @@ export const ListingCard: React.FC<ListingCardProps> = ({
         </p>
       )}
 
+      {/* Pricing display */}
+      {listing.price_type && (
+        <div style={{ marginBottom: theme.spacing.sm }}>
+          {listing.price_type === 'quote_only' && (
+            <p style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.text.secondary }}>
+              Quote only
+            </p>
+          )}
+          {listing.price_type === 'from' && listing.price_min && (
+            <p style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.medium }}>
+              From {formatCurrency(listing.price_min)}
+            </p>
+          )}
+          {listing.price_type === 'per_person' && listing.price_min && listing.price_max && (
+            <p style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.medium }}>
+              {formatCurrency(listing.price_min)}–{formatCurrency(listing.price_max)} pp
+            </p>
+          )}
+          {listing.price_type === 'package' && listing.price_min && listing.price_max && (
+            <p style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.medium }}>
+              {formatCurrency(listing.price_min)}–{formatCurrency(listing.price_max)} package
+            </p>
+          )}
+          {listing.last_verified_at && (
+            <p style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.text.muted, marginTop: theme.spacing.xs }}>
+              Verified {new Date(listing.last_verified_at).toLocaleDateString()}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Enquiry status */}
+      {enquiryStatus && (
+        <div style={{ marginBottom: theme.spacing.sm }}>
+          <Tag variant={enquiryStatus === 'booked' ? 'success' : 'default'}>
+            Enquiry: {enquiryStatus}
+          </Tag>
+        </div>
+      )}
+
       <div
         style={{
           display: 'flex',
@@ -120,6 +170,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
         style={{
           display: 'flex',
           gap: theme.spacing.sm,
+          flexWrap: 'wrap',
         }}
       >
         <a
@@ -151,6 +202,24 @@ export const ListingCard: React.FC<ListingCardProps> = ({
             }}
           >
             Save
+          </button>
+        )}
+        {onEnquire && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEnquire(listing);
+            }}
+            style={{
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.accent.primary,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+            }}
+          >
+            Enquire
           </button>
         )}
       </div>

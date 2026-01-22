@@ -59,7 +59,7 @@ export const LandingPage: React.FC = () => {
         </p>
         <Button
           size="lg"
-          onClick={() => navigate('/onboarding')}
+          onClick={() => navigate('/login')}
           style={{
             fontSize: theme.typography.fontSize.lg,
             padding: `${theme.spacing.lg} ${theme.spacing.xxl}`,
