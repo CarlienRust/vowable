@@ -1,6 +1,6 @@
-# Wedding Planner - Western Cape
+# Vowable
 
-A minimal wedding planning web app for South Africa (Western Cape focus), built with React + Vite.
+A wedding planning web app for South Africa (Western Cape focus), built with React + Vite.
 
 ## Features
 
@@ -45,7 +45,7 @@ npm run preview
 ## Project Structure
 
 ```
-wedding-planner-wc/
+vowable/
 ├── src/
 │   ├── components/       # Reusable UI components
 │   ├── domain/          # Business logic and types
@@ -60,7 +60,7 @@ wedding-planner-wc/
 
 ## Data Persistence
 
-The app uses localStorage for MVP persistence:
+The app uses Supabase (Auth + Postgres) for data persistence:
 - `weddingPlan`: Wedding plan data
 - `savedItems`: Saved listings
 - `checklistItems`: Checklist tasks with completion status

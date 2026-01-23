@@ -27,7 +27,7 @@ export const LandingPage: React.FC = () => {
       >
         <img
           src={logo}
-          alt="Toit Nups"
+          alt="Vowable"
           style={{
             width: '200px',
             height: 'auto',
