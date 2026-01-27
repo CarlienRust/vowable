@@ -3,6 +3,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { theme } from '../styles/theme';
+import { fetchBoardPreviews, parseBoardUrl } from '../services/pinterest.service';
 
 interface MoodboardItem {
   id: string;
@@ -11,6 +12,7 @@ interface MoodboardItem {
   title?: string;
   description?: string;
   thumbnail?: string;
+  previewImages?: string[];
   extractedThemes?: string[];
   extractedColors?: string[];
   extractionDate?: string;
@@ -22,6 +24,7 @@ export const MoodboardPage: React.FC = () => {
   const [newItemUrl, setNewItemUrl] = useState('');
   const [newItemTitle, setNewItemTitle] = useState('');
   const [pinterestBoardUrl, setPinterestBoardUrl] = useState('');
+  const [loadingBoard, setLoadingBoard] = useState(false);
 
   useEffect(() => {
     // Load moodboard items from localStorage
@@ -73,27 +76,50 @@ export const MoodboardPage: React.FC = () => {
     setShowAddForm(false);
   };
 
-  const handleLinkPinterest = () => {
+  const handleLinkPinterest = async () => {
     if (!pinterestBoardUrl.trim()) return;
 
     // Validate URL
-    const boardMatch = pinterestBoardUrl.match(/pinterest\.com\/[^\/]+\/([^\/]+)/);
-    if (!boardMatch) {
+    const parsed = parseBoardUrl(pinterestBoardUrl);
+    if (!parsed) {
       alert('Please enter a valid Pinterest board URL');
       return;
     }
 
-    // Simply save the board link without API extraction
-    const newItem: MoodboardItem = {
-      id: Date.now().toString(),
-      type: 'pinterest',
-      url: pinterestBoardUrl,
-      title: 'Pinterest Board',
-      description: `Linked Pinterest board: ${pinterestBoardUrl}`,
-    };
+    setLoadingBoard(true);
 
-    saveItems([...items, newItem]);
-    setPinterestBoardUrl('');
+    try {
+      // Fetch preview images from the board
+      const previewImages = await fetchBoardPreviews(pinterestBoardUrl, 6);
+      
+      const boardName = parsed.boardName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+      const newItem: MoodboardItem = {
+        id: Date.now().toString(),
+        type: 'pinterest',
+        url: pinterestBoardUrl,
+        title: boardName || 'Pinterest Board',
+        description: `Linked Pinterest board: ${pinterestBoardUrl}`,
+        previewImages: previewImages.length > 0 ? previewImages : undefined,
+      };
+
+      saveItems([...items, newItem]);
+      setPinterestBoardUrl('');
+    } catch (error) {
+      console.error('Error linking Pinterest board:', error);
+      // Still save the board link even if previews fail
+      const newItem: MoodboardItem = {
+        id: Date.now().toString(),
+        type: 'pinterest',
+        url: pinterestBoardUrl,
+        title: 'Pinterest Board',
+        description: `Linked Pinterest board: ${pinterestBoardUrl}`,
+      };
+      saveItems([...items, newItem]);
+      setPinterestBoardUrl('');
+    } finally {
+      setLoadingBoard(false);
+    }
   };
 
   const handleRemoveItem = (id: string) => {
@@ -185,8 +211,8 @@ export const MoodboardPage: React.FC = () => {
             placeholder="https://pinterest.com/username/board-name"
             style={{ flex: 1 }}
           />
-          <Button onClick={handleLinkPinterest} disabled={!pinterestBoardUrl.trim()}>
-            Link Board
+          <Button onClick={handleLinkPinterest} disabled={!pinterestBoardUrl.trim() || loadingBoard}>
+            {loadingBoard ? 'Loading...' : 'Link Board'}
           </Button>
         </div>
         <p
@@ -286,21 +312,63 @@ export const MoodboardPage: React.FC = () => {
                 </div>
               ) : item.type === 'pinterest' ? (
                 <div>
-                  <div
-                    style={{
-                      width: '100%',
-                      height: '200px',
-                      backgroundColor: theme.colors.surface,
-                      borderRadius: theme.borderRadius.md,
-                      marginBottom: theme.spacing.sm,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: `1px solid ${theme.colors.border}`,
-                    }}
-                  >
-                    <span style={{ fontSize: '48px' }}>📌</span>
-                  </div>
+                  {item.previewImages && item.previewImages.length > 0 ? (
+                    <div
+                      style={{
+                        width: '100%',
+                        minHeight: '200px',
+                        borderRadius: theme.borderRadius.md,
+                        marginBottom: theme.spacing.sm,
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: theme.spacing.xs,
+                      }}
+                    >
+                      {item.previewImages.slice(0, 4).map((imageUrl, idx) => (
+                        <img
+                          key={idx}
+                          src={imageUrl}
+                          alt={`Preview ${idx + 1}`}
+                          style={{
+                            width: '100%',
+                            height: '100px',
+                            objectFit: 'cover',
+                            borderRadius: theme.borderRadius.sm,
+                            border: `1px solid ${theme.colors.border}`,
+                          }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '200px',
+                        backgroundColor: theme.colors.surface,
+                        borderRadius: theme.borderRadius.md,
+                        marginBottom: theme.spacing.sm,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: `1px solid ${theme.colors.border}`,
+                        flexDirection: 'column',
+                        gap: theme.spacing.xs,
+                      }}
+                    >
+                      <span style={{ fontSize: '48px' }}>📌</span>
+                      <span
+                        style={{
+                          fontSize: theme.typography.fontSize.xs,
+                          color: theme.colors.text.secondary,
+                        }}
+                      >
+                        Preview unavailable
+                      </span>
+                    </div>
+                  )}
                   <h3
                     style={{
                       fontSize: theme.typography.fontSize.sm,
@@ -308,7 +376,7 @@ export const MoodboardPage: React.FC = () => {
                       marginBottom: theme.spacing.xs,
                     }}
                   >
-                    Pinterest Board
+                    {item.title || 'Pinterest Board'}
                   </h3>
                   <a
                     href={item.url}
@@ -323,7 +391,7 @@ export const MoodboardPage: React.FC = () => {
                       display: 'block',
                     }}
                   >
-                    {item.url}
+                    View on Pinterest →
                   </a>
                 </div>
               ) : (

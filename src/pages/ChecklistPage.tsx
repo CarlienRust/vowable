@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { ChecklistItem } from '../domain/types';
 import { useWeddingPlanStore } from '../state/useWeddingPlanStore';
 import { ChecklistItemRow } from '../components/checklist/ChecklistItemRow';
-import { ReminderPanel } from '../components/checklist/ReminderPanel';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { theme } from '../styles/theme';
@@ -98,8 +97,6 @@ export const ChecklistPage: React.FC = () => {
       >
         Checklist
       </h1>
-
-      <ReminderPanel items={checklistItems} />
 
       {categories.map((category) => {
         const { incomplete, completed } = itemsByCategory[category];

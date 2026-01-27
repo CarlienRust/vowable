@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { authService } from '../services/auth.service';
+import { authService, Profile } from '../services/auth.service';
 import { Footer } from '../components/ui/Footer';
 import { theme } from '../styles/theme';
 import dashboardIcon from '../assets/dashboard.png';
@@ -29,18 +29,39 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const checkAdmin = async () => {
       const currentUser = await authService.getUser();
       setUser(currentUser);
       if (currentUser) {
-        const profile = await authService.getProfile(currentUser.id);
-        setIsAdmin(profile?.is_admin || false);
+        const userProfile = await authService.getProfile(currentUser.id);
+        setProfile(userProfile);
+        setIsAdmin(userProfile?.is_admin || false);
       }
     };
     checkAdmin();
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [dropdownOpen]);
 
   const handleSignOut = async () => {
     await authService.signOut();
@@ -72,35 +93,133 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             zIndex: 999,
           }}
         >
-          <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.text.secondary }}>
-            {user.email}
-          </div>
-          <div style={{ display: 'flex', gap: theme.spacing.md, alignItems: 'center' }}>
-            {isAdmin && (
-              <Link
-                to="/admin/listings/new"
-                style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.accent.primary,
-                  textDecoration: 'none',
-                }}
-              >
-                Add Listing
-              </Link>
-            )}
+          <div style={{ position: 'relative' }} ref={dropdownRef}>
             <button
-              onClick={handleSignOut}
+              onClick={() => setDropdownOpen(!dropdownOpen)}
               style={{
                 fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.text.secondary,
+                color: theme.colors.text.primary,
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                textDecoration: 'underline',
+                padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+                borderRadius: theme.borderRadius.md,
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing.xs,
+                transition: 'background-color 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.colors.background;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
-              Sign Out
+              <span>{user.email}</span>
+              <span style={{ fontSize: '10px' }}>{dropdownOpen ? '▲' : '▼'}</span>
             </button>
+            {dropdownOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  marginTop: theme.spacing.xs,
+                  backgroundColor: theme.colors.surface,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.borderRadius.md,
+                  boxShadow: theme.shadows.lg,
+                  minWidth: '200px',
+                  padding: theme.spacing.sm,
+                  zIndex: 1000,
+                }}
+              >
+                <div
+                  style={{
+                    padding: theme.spacing.sm,
+                    borderBottom: `1px solid ${theme.colors.border}`,
+                    marginBottom: theme.spacing.xs,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      color: theme.colors.text.primary,
+                      marginBottom: theme.spacing.xs,
+                    }}
+                  >
+                    {profile?.full_name || 'User'}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: theme.typography.fontSize.xs,
+                      color: theme.colors.text.secondary,
+                    }}
+                  >
+                    {user.email}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: theme.spacing.xs,
+                    fontSize: theme.typography.fontSize.xs,
+                    color: theme.colors.text.secondary,
+                    marginBottom: theme.spacing.xs,
+                  }}
+                >
+                  Account Details
+                </div>
+                {isAdmin && (
+                  <Link
+                    to="/admin/listings/new"
+                    onClick={() => setDropdownOpen(false)}
+                    style={{
+                      display: 'block',
+                      padding: theme.spacing.sm,
+                      fontSize: theme.typography.fontSize.sm,
+                      color: theme.colors.accent.primary,
+                      textDecoration: 'none',
+                      borderRadius: theme.borderRadius.sm,
+                      marginBottom: theme.spacing.xs,
+                      transition: 'background-color 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.colors.background;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                  >
+                    Add Listing
+                  </Link>
+                )}
+                <button
+                  onClick={handleSignOut}
+                  style={{
+                    width: '100%',
+                    padding: theme.spacing.sm,
+                    fontSize: theme.typography.fontSize.sm,
+                    color: theme.colors.text.secondary,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    borderRadius: theme.borderRadius.sm,
+                    transition: 'background-color 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = theme.colors.background;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

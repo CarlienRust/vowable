@@ -41,7 +41,6 @@ export const OnboardingPage: React.FC = () => {
   const [location, setLocation] = useState(existingWedding?.location || '');
   const [radiusKm, setRadiusKm] = useState(existingWedding?.radiusKm?.toString() || '50');
   const [themePrimary, setThemePrimary] = useState(existingWedding?.themePrimary || '');
-  const [themeSecondary, setThemeSecondary] = useState(existingWedding?.themeSecondary || '');
   const [themeTag1, setThemeTag1] = useState(existingWedding?.themeTags[0] || '');
   const [themeTag2, setThemeTag2] = useState(existingWedding?.themeTags[1] || '');
   const [themeTag3, setThemeTag3] = useState(existingWedding?.themeTags[2] || '');
@@ -209,12 +208,6 @@ export const OnboardingPage: React.FC = () => {
               onChange={(e) => setThemePrimary(e.target.value)}
               placeholder="e.g. Rustic, Elegant, Modern"
             />
-            <Input
-              label="Secondary Theme (optional)"
-              value={themeSecondary}
-              onChange={(e) => setThemeSecondary(e.target.value)}
-              placeholder="e.g. Garden, Coastal"
-            />
             <div>
               <label
                 style={{
@@ -255,64 +248,46 @@ export const OnboardingPage: React.FC = () => {
               >
                 Theme Colors (3)
               </label>
-              <div style={{ display: 'flex', gap: theme.spacing.sm, alignItems: 'center' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.xs }}>
-                  <Input
-                    type="color"
-                    value={color1 || '#000000'}
-                    onChange={(e) => setColor1(e.target.value)}
-                    style={{ width: '80px', height: '40px' }}
-                  />
-                  {color1 && (
-                    <div
-                      style={{
-                        width: '80px',
-                        height: '40px',
-                        backgroundColor: color1,
-                        borderRadius: theme.borderRadius.sm,
-                        border: `1px solid ${theme.colors.border}`,
-                      }}
-                    />
-                  )}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.xs }}>
-                  <Input
-                    type="color"
-                    value={color2 || '#000000'}
-                    onChange={(e) => setColor2(e.target.value)}
-                    style={{ width: '80px', height: '40px' }}
-                  />
-                  {color2 && (
-                    <div
-                      style={{
-                        width: '80px',
-                        height: '40px',
-                        backgroundColor: color2,
-                        borderRadius: theme.borderRadius.sm,
-                        border: `1px solid ${theme.colors.border}`,
-                      }}
-                    />
-                  )}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.xs }}>
-                  <Input
-                    type="color"
-                    value={color3 || '#000000'}
-                    onChange={(e) => setColor3(e.target.value)}
-                    style={{ width: '80px', height: '40px' }}
-                  />
-                  {color3 && (
-                    <div
-                      style={{
-                        width: '80px',
-                        height: '40px',
-                        backgroundColor: color3,
-                        borderRadius: theme.borderRadius.sm,
-                        border: `1px solid ${theme.colors.border}`,
-                      }}
-                    />
-                  )}
-                </div>
+              <div style={{ display: 'flex', gap: theme.spacing.md, alignItems: 'center' }}>
+                <Input
+                  type="color"
+                  value={color1 || '#000000'}
+                  onChange={(e) => setColor1(e.target.value)}
+                  style={{ 
+                    width: '100px', 
+                    height: '60px',
+                    padding: 0,
+                    border: `2px solid ${theme.colors.border}`,
+                    borderRadius: theme.borderRadius.md,
+                    cursor: 'pointer',
+                  }}
+                />
+                <Input
+                  type="color"
+                  value={color2 || '#000000'}
+                  onChange={(e) => setColor2(e.target.value)}
+                  style={{ 
+                    width: '100px', 
+                    height: '60px',
+                    padding: 0,
+                    border: `2px solid ${theme.colors.border}`,
+                    borderRadius: theme.borderRadius.md,
+                    cursor: 'pointer',
+                  }}
+                />
+                <Input
+                  type="color"
+                  value={color3 || '#000000'}
+                  onChange={(e) => setColor3(e.target.value)}
+                  style={{ 
+                    width: '100px', 
+                    height: '60px',
+                    padding: 0,
+                    border: `2px solid ${theme.colors.border}`,
+                    borderRadius: theme.borderRadius.md,
+                    cursor: 'pointer',
+                  }}
+                />
               </div>
             </div>
           </div>

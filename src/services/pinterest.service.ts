@@ -297,6 +297,48 @@ export async function extractThemesFromBoard(boardUrl: string): Promise<Extracte
 }
 
 /**
+ * Fetch preview images from a Pinterest board
+ */
+export async function fetchBoardPreviews(boardUrl: string, limit: number = 6): Promise<string[]> {
+  const parsed = parseBoardUrl(boardUrl);
+  if (!parsed) {
+    return [];
+  }
+
+  const { username, boardName } = parsed;
+
+  if (!hasApiCredentials()) {
+    return [];
+  }
+
+  try {
+    const board = await fetchBoardFromApi(username, boardName);
+    if (!board) {
+      return [];
+    }
+
+    const pins = await fetchBoardPins(board.id, limit);
+    const previewUrls: string[] = [];
+
+    pins.forEach((pin) => {
+      const imageUrl = 
+        pin.media?.images?.['736x']?.url ||
+        pin.media?.images?.['564x']?.url ||
+        pin.media?.images?.originals?.url;
+      
+      if (imageUrl) {
+        previewUrls.push(imageUrl);
+      }
+    });
+
+    return previewUrls;
+  } catch (error) {
+    console.error('Failed to fetch board previews', error);
+    return [];
+  }
+}
+
+/**
  * Pinterest service object - placeholder for future full API implementation
  * Currently exports extractThemesFromBoard and parseBoardUrl which are actively used.
  * Other methods (authenticate, searchInspiration, savePin) are stubs for future implementation.

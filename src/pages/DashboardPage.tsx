@@ -5,7 +5,6 @@ import { authService } from '../services/auth.service';
 import { formatDate } from '../domain/format';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { ReminderPanel } from '../components/checklist/ReminderPanel';
 import { theme } from '../styles/theme';
 
 export const DashboardPage: React.FC = () => {
@@ -188,8 +187,6 @@ export const DashboardPage: React.FC = () => {
           </Button>
         </Card>
       </div>
-
-      <ReminderPanel items={checklistItems} />
 
       <div
         style={{
