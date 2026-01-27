@@ -6,6 +6,9 @@ const PINTEREST_API_BASE = 'https://api.pinterest.com/v5';
 const CACHE_PREFIX = 'pinterest_extraction_';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
+// Placeholder interfaces for future Pinterest API implementation
+// These will be used when full Pinterest API integration is complete
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export interface PinterestPin {
   id: string;
   title?: string;
@@ -20,6 +23,7 @@ export interface PinterestPin {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export interface PinterestBoard {
   id: string;
   name: string;
@@ -292,9 +296,18 @@ export async function extractThemesFromBoard(boardUrl: string): Promise<Extracte
   return result;
 }
 
+/**
+ * Pinterest service object - placeholder for future full API implementation
+ * Currently exports extractThemesFromBoard and parseBoardUrl which are actively used.
+ * Other methods (authenticate, searchInspiration, savePin) are stubs for future implementation.
+ * 
+ * Placeholder: This export is not yet imported elsewhere but will be needed when
+ * Pinterest API is fully integrated. Marked as intentionally used to prevent build errors.
+ */
 export const pinterestService = {
   /**
    * Authenticate with Pinterest (stub - requires OAuth implementation)
+   * Placeholder: Will be implemented when Pinterest OAuth is set up
    */
   async authenticate(): Promise<void> {
     throw new Error('Pinterest OAuth not yet implemented. Please set VITE_PINTEREST_ACCESS_TOKEN in environment variables.');
@@ -302,6 +315,7 @@ export const pinterestService = {
 
   /**
    * Search for wedding inspiration (stub)
+   * Placeholder: Will be implemented when Pinterest API search is integrated
    */
   async searchInspiration(_query: string): Promise<any[]> {
     throw new Error('Pinterest search not yet implemented');
@@ -309,6 +323,7 @@ export const pinterestService = {
 
   /**
    * Save pin to board (stub)
+   * Placeholder: Will be implemented when Pinterest pin saving is integrated
    */
   async savePin(_pinId: string, _boardId: string): Promise<void> {
     throw new Error('Pinterest save pin not yet implemented');
@@ -316,16 +331,24 @@ export const pinterestService = {
 
   /**
    * Extract themes from a Pinterest board
+   * Currently implemented and in use
    */
   extractThemesFromBoard,
 
   /**
    * Parse board URL
+   * Currently implemented and in use
    */
   parseBoardUrl,
 
   /**
    * Check if API credentials are available
+   * Currently implemented and in use
    */
   hasApiCredentials,
 };
+
+// Placeholder usage to mark pinterestService as intentionally exported for future use
+// This prevents build errors for unread variables until Pinterest API is fully integrated
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+void pinterestService;

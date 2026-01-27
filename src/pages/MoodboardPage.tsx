@@ -3,7 +3,6 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { Tag } from '../components/ui/Tag';
-import { extractThemesFromBoard } from '../services/pinterest.service';
 import { useWeddingPlanStore } from '../state/useWeddingPlanStore';
 import { theme } from '../styles/theme';
 
@@ -27,13 +26,6 @@ export const MoodboardPage: React.FC = () => {
   const [newItemUrl, setNewItemUrl] = useState('');
   const [newItemTitle, setNewItemTitle] = useState('');
   const [pinterestBoardUrl, setPinterestBoardUrl] = useState('');
-  const [extractingThemes, setExtractingThemes] = useState(false);
-  const [extractedThemes, setExtractedThemes] = useState<{
-    themes: string[];
-    colors: string[];
-    keywords: string[];
-  } | null>(null);
-  const [selectedThemes, setSelectedThemes] = useState<string[]>([]);
 
   useEffect(() => {
     // Load moodboard items from localStorage
@@ -85,7 +77,7 @@ export const MoodboardPage: React.FC = () => {
     setShowAddForm(false);
   };
 
-  const handleLinkPinterest = async () => {
+  const handleLinkPinterest = () => {
     if (!pinterestBoardUrl.trim()) return;
 
     // Validate URL
@@ -95,85 +87,17 @@ export const MoodboardPage: React.FC = () => {
       return;
     }
 
-    setExtractingThemes(true);
-    try {
-      // Extract themes from board
-      const extraction = await extractThemesFromBoard(pinterestBoardUrl);
-      setExtractedThemes(extraction);
-      setSelectedThemes(extraction.keywords.slice(0, 10)); // Pre-select first 10 keywords
-    } catch (error) {
-      console.error('Failed to extract themes', error);
-      // Still create the item even if extraction fails
-      const newItem: MoodboardItem = {
-        id: Date.now().toString(),
-        type: 'pinterest',
-        url: pinterestBoardUrl,
-        title: 'Pinterest Board',
-        description: `Linked Pinterest board: ${pinterestBoardUrl}`,
-      };
-      saveItems([...items, newItem]);
-      setPinterestBoardUrl('');
-      setExtractingThemes(false);
-      alert('Board linked, but theme extraction failed. You can add themes manually.');
-      return;
-    }
-    setExtractingThemes(false);
-  };
-
-  const handleConfirmThemes = () => {
-    if (!pinterestBoardUrl.trim() || !extractedThemes) return;
-
+    // Simply save the board link without API extraction
     const newItem: MoodboardItem = {
       id: Date.now().toString(),
       type: 'pinterest',
       url: pinterestBoardUrl,
       title: 'Pinterest Board',
       description: `Linked Pinterest board: ${pinterestBoardUrl}`,
-      extractedThemes: selectedThemes,
-      extractedColors: extractedThemes.colors,
-      extractionDate: new Date().toISOString(),
     };
 
     saveItems([...items, newItem]);
     setPinterestBoardUrl('');
-    setExtractedThemes(null);
-    setSelectedThemes([]);
-  };
-
-  const handleCancelThemeExtraction = () => {
-    // Still save the board without extracted themes
-    if (pinterestBoardUrl.trim()) {
-      const newItem: MoodboardItem = {
-        id: Date.now().toString(),
-        type: 'pinterest',
-        url: pinterestBoardUrl,
-        title: 'Pinterest Board',
-        description: `Linked Pinterest board: ${pinterestBoardUrl}`,
-      };
-      saveItems([...items, newItem]);
-      setPinterestBoardUrl('');
-    }
-    setExtractedThemes(null);
-    setSelectedThemes([]);
-  };
-
-  const handleToggleTheme = (theme: string) => {
-    if (selectedThemes.includes(theme)) {
-      setSelectedThemes(selectedThemes.filter((t) => t !== theme));
-    } else {
-      setSelectedThemes([...selectedThemes, theme]);
-    }
-  };
-
-  const handleApplyThemesToWedding = () => {
-    if (!wedding || selectedThemes.length === 0) return;
-
-    const updatedWedding = {
-      ...wedding,
-      themeTags: [...(wedding.themeTags || []), ...selectedThemes].slice(0, 10), // Limit to 10 tags
-    };
-    setWedding(updatedWedding);
-    alert('Themes applied to your wedding plan!');
   };
 
   const handleRemoveItem = (id: string) => {
@@ -264,10 +188,9 @@ export const MoodboardPage: React.FC = () => {
             onChange={(e) => setPinterestBoardUrl(e.target.value)}
             placeholder="https://pinterest.com/username/board-name"
             style={{ flex: 1 }}
-            disabled={extractingThemes}
           />
-          <Button onClick={handleLinkPinterest} disabled={extractingThemes || !pinterestBoardUrl.trim()}>
-            {extractingThemes ? 'Extracting...' : 'Link Board'}
+          <Button onClick={handleLinkPinterest} disabled={!pinterestBoardUrl.trim()}>
+            Link Board
           </Button>
         </div>
         <p
@@ -277,109 +200,9 @@ export const MoodboardPage: React.FC = () => {
             color: theme.colors.text.secondary,
           }}
         >
-          Paste your Pinterest board URL to link it to your moodboard. We'll extract theme keywords to help match vendors.
+          Paste your Pinterest board URL to link it to your moodboard.
         </p>
       </Card>
-
-      {extractedThemes && (
-        <Card style={{ marginBottom: theme.spacing.lg, border: `2px solid ${theme.colors.accent.primary}` }}>
-          <h2
-            style={{
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.semibold,
-              marginBottom: theme.spacing.md,
-            }}
-          >
-            Extracted Themes from Pinterest Board
-          </h2>
-          <p
-            style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.text.secondary,
-              marginBottom: theme.spacing.md,
-            }}
-          >
-            Select the themes you'd like to use for vendor matching:
-          </p>
-
-          {extractedThemes.themes.length > 0 && (
-            <div style={{ marginBottom: theme.spacing.md }}>
-              <h3
-                style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  marginBottom: theme.spacing.xs,
-                }}
-              >
-                Theme Keywords:
-              </h3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing.xs }}>
-                {extractedThemes.themes.map((themeKeyword) => (
-                  <button
-                    key={themeKeyword}
-                    type="button"
-                    onClick={() => handleToggleTheme(themeKeyword)}
-                    style={{
-                      padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                      borderRadius: theme.borderRadius.md,
-                      border: `1px solid ${
-                        selectedThemes.includes(themeKeyword)
-                          ? theme.colors.accent.primary
-                          : theme.colors.border
-                      }`,
-                      backgroundColor: selectedThemes.includes(themeKeyword)
-                        ? theme.colors.accent.light
-                        : theme.colors.surface,
-                      color: selectedThemes.includes(themeKeyword)
-                        ? theme.colors.accent.primary
-                        : theme.colors.text.primary,
-                      cursor: 'pointer',
-                      fontSize: theme.typography.fontSize.xs,
-                    }}
-                  >
-                    {themeKeyword}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {extractedThemes.colors.length > 0 && (
-            <div style={{ marginBottom: theme.spacing.md }}>
-              <h3
-                style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  marginBottom: theme.spacing.xs,
-                }}
-              >
-                Colors:
-              </h3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing.xs }}>
-                {extractedThemes.colors.map((color) => (
-                  <Tag key={color} variant="outline">
-                    {color}
-                  </Tag>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: theme.spacing.sm, marginTop: theme.spacing.md }}>
-            <Button onClick={handleConfirmThemes} style={{ flex: 1 }}>
-              Save Board with Themes ({selectedThemes.length} selected)
-            </Button>
-            {wedding && (
-              <Button onClick={handleApplyThemesToWedding} variant="outline">
-                Apply to Wedding Plan
-              </Button>
-            )}
-            <Button onClick={handleCancelThemeExtraction} variant="outline">
-              Cancel
-            </Button>
-          </div>
-        </Card>
-      )}
 
       {items.length === 0 ? (
         <Card>
@@ -506,44 +329,6 @@ export const MoodboardPage: React.FC = () => {
                   >
                     {item.url}
                   </a>
-                  {item.extractedThemes && item.extractedThemes.length > 0 && (
-                    <div style={{ marginTop: theme.spacing.xs }}>
-                      <p
-                        style={{
-                          fontSize: theme.typography.fontSize.xs,
-                          fontWeight: theme.typography.fontWeight.medium,
-                          color: theme.colors.text.secondary,
-                          marginBottom: theme.spacing.xs,
-                        }}
-                      >
-                        Extracted themes:
-                      </p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing.xs }}>
-                        {item.extractedThemes.slice(0, 5).map((themeKeyword) => (
-                          <Tag key={themeKeyword} variant="outline" style={{ fontSize: '10px' }}>
-                            {themeKeyword}
-                          </Tag>
-                        ))}
-                        {item.extractedThemes.length > 5 && (
-                          <Tag variant="outline" style={{ fontSize: '10px' }}>
-                            +{item.extractedThemes.length - 5} more
-                          </Tag>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  {item.extractionDate && (
-                    <p
-                      style={{
-                        fontSize: theme.typography.fontSize.xs,
-                        color: theme.colors.text.secondary,
-                        marginTop: theme.spacing.xs,
-                        fontStyle: 'italic',
-                      }}
-                    >
-                      Extracted {new Date(item.extractionDate).toLocaleDateString()}
-                    </p>
-                  )}
                 </div>
               ) : (
                 <div>
