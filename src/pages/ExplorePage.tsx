@@ -9,6 +9,7 @@ import { FiltersBar } from '../components/listings/FiltersBar';
 import { MapPlaceholder } from '../components/listings/MapPlaceholder';
 import { EnquiryModal } from '../components/listings/EnquiryModal';
 import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
 import { theme } from '../styles/theme';
 
 type ViewMode = 'list' | 'map';
@@ -159,6 +160,56 @@ export const ExplorePage: React.FC = () => {
         onPriceBandChange={setSelectedPriceBand}
         onSearchChange={setSearchQuery}
       />
+
+      <Card
+        style={{
+          marginBottom: theme.spacing.lg,
+          backgroundColor: '#fff5f7',
+          border: `2px solid #ffc0cb`,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: theme.spacing.md,
+          }}
+        >
+          <div style={{ flex: 1, minWidth: '250px' }}>
+            <h2
+              style={{
+                fontSize: theme.typography.fontSize.xl,
+                fontWeight: theme.typography.fontWeight.bold,
+                color: '#d81b60',
+                marginBottom: theme.spacing.xs,
+              }}
+            >
+              Pink Book Weddings
+            </h2>
+            <p
+              style={{
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.text.secondary,
+                marginBottom: theme.spacing.sm,
+              }}
+            >
+              Browse South Africa's comprehensive wedding directory with hundreds of vetted vendors
+            </p>
+          </div>
+          <Button
+            onClick={() => window.open('https://pink-book.co.za', '_blank', 'noopener,noreferrer')}
+            style={{
+              backgroundColor: '#d81b60',
+              color: 'white',
+              border: 'none',
+            }}
+          >
+            Visit Pink Book →
+          </Button>
+        </div>
+      </Card>
 
       {viewMode === 'list' ? (
         <div>

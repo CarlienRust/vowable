@@ -98,6 +98,31 @@ function generateWhyReasons(
 }
 
 /**
+ * Get Pinterest-extracted themes from moodboard
+ */
+function getPinterestThemesFromMoodboard(): string[] {
+  try {
+    const saved = localStorage.getItem('moodboard_items');
+    if (!saved) return [];
+
+    const items = JSON.parse(saved);
+    const pinterestThemes: string[] = [];
+
+    items.forEach((item: any) => {
+      if (item.type === 'pinterest' && item.extractedThemes && Array.isArray(item.extractedThemes)) {
+        pinterestThemes.push(...item.extractedThemes);
+      }
+    });
+
+    // Remove duplicates and return
+    return Array.from(new Set(pinterestThemes));
+  } catch (e) {
+    console.error('Failed to load Pinterest themes from moodboard', e);
+    return [];
+  }
+}
+
+/**
  * Find and rank vendors based on preferences using production-safe ranking
  */
 export function findVendorMatches(
@@ -131,12 +156,24 @@ export function findVendorMatches(
   // Get guest estimate
   const guestEstimate = preferences.guestCount || getGuestEstimateFromRange(wedding.guestCountRange);
 
+  // Get Pinterest-extracted themes from moodboard
+  const pinterestThemes = getPinterestThemesFromMoodboard();
+
+  // Merge Pinterest themes with existing required tags and wedding plan theme tags
+  const allThemeTags = [
+    ...(preferences.requiredTags || []),
+    ...(wedding.themeTags || []),
+    ...pinterestThemes,
+  ];
+  // Remove duplicates
+  const uniqueThemeTags = Array.from(new Set(allThemeTags.map((tag) => tag.toLowerCase().trim())));
+
   // Rank listings
   const matchResults = rankListings({
     plan: wedding,
     listings,
     category: preferences.category,
-    requiredTags: preferences.requiredTags || [],
+    requiredTags: uniqueThemeTags,
     excludedTags: preferences.excludedTags || [],
     priceBands,
     guestsEstimate: guestEstimate,

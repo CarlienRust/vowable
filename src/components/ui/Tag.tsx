@@ -3,11 +3,12 @@ import { theme } from '../../styles/theme';
 
 interface TagProps {
   children: React.ReactNode;
-  variant?: 'default' | 'accent' | 'success' | 'warning';
+  variant?: 'default' | 'accent' | 'success' | 'warning' | 'outline';
   onClick?: () => void;
+  style?: React.CSSProperties;
 }
 
-export const Tag: React.FC<TagProps> = ({ children, variant = 'default', onClick }) => {
+export const Tag: React.FC<TagProps> = ({ children, variant = 'default', onClick, style }) => {
   const variantStyles: Record<string, React.CSSProperties> = {
     default: {
       backgroundColor: theme.colors.border,
@@ -25,6 +26,11 @@ export const Tag: React.FC<TagProps> = ({ children, variant = 'default', onClick
       backgroundColor: '#FFF3E0',
       color: theme.colors.warning,
     },
+    outline: {
+      backgroundColor: 'transparent',
+      color: theme.colors.text.primary,
+      border: `1px solid ${theme.colors.border}`,
+    },
   };
 
   return (
@@ -37,6 +43,7 @@ export const Tag: React.FC<TagProps> = ({ children, variant = 'default', onClick
         fontWeight: theme.typography.fontWeight.medium,
         cursor: onClick ? 'pointer' : 'default',
         ...variantStyles[variant],
+        ...style,
       }}
       onClick={onClick}
     >
