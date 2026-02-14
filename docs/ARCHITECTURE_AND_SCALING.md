@@ -109,15 +109,15 @@ All tables use RLS with user-scoped (or admin) policies. No cross-user data leak
 ## Vendor seeding (operational notes)
 
 - **Function**: `seed-vendors` (Supabase Edge Function)
-  - Upserts into `listings` with `source='google_places'` and `source_id=<place_id>`.
+  - Upserts into `listings` with `source='osm'` and `source_id=<node|way|relation>/<id>`.
   - Inserts as `status='published'` (visible immediately in Explore).
   - Supports `dryRun: true` in POST body for safe testing.
 
 - **Required secrets (Supabase)**:
-  - `GOOGLE_PLACES_API_KEY`
   - `SUPABASE_URL`
   - `SUPABASE_SERVICE_ROLE_KEY`
   - Optional: `SEED_VENDORS_ADMIN_KEY` (required header `x-seed-admin-key` when set)
+  - Optional: `OVERPASS_URL` (defaults to `https://overpass-api.de/api/interpreter`)
 
 - **Weekly schedule**:
   - If you don’t have Supabase cron available in-repo, use a GitHub Actions scheduled workflow to POST to the function endpoint (see `.github/workflows/seed-vendors-weekly.yml`).

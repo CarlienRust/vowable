@@ -1,5 +1,5 @@
 // Supabase Edge Function: seed-vendors
-// Seeds Western Cape vendor listings from Google Places into `listings` (published).
+// Seeds Western Cape vendor listings from OpenStreetMap (Overpass API) into `listings` (published).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -8,12 +8,8 @@ type ListingType = 'venue' | 'caterer' | 'florist' | 'boutique' | 'accommodation
 interface SeedRequest {
   dryRun?: boolean;
   types?: ListingType[];
-  center?: { lat: number; lng: number };
-  radiusMeters?: number;
 }
 
-const DEFAULT_CENTER = { lat: -33.9249, lng: 18.4241 }; // Cape Town
-const DEFAULT_RADIUS_METERS = 200_000;
 const DEFAULT_TYPES: ListingType[] = ['venue', 'caterer', 'florist', 'boutique', 'accommodation'];
 
 function json(data: unknown, init: ResponseInit = {}) {
@@ -30,50 +26,62 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function getKeywordsForType(type: ListingType): string[] {
+function getOverpassFiltersForType(type: ListingType): string[] {
   switch (type) {
     case 'venue':
-      return ['wedding venue', 'venue'];
+      return ['["amenity"="events_venue"]'];
     case 'caterer':
-      return ['wedding caterer', 'caterer'];
+      return ['["craft"="caterer"]'];
     case 'florist':
-      return ['wedding florist', 'florist'];
+      return ['["shop"="florist"]'];
     case 'boutique':
-      return ['bridal boutique', 'wedding dress'];
+      return ['["shop"="bridal"]'];
     case 'accommodation':
-      return ['wedding accommodation', 'guest house'];
+      return ['["tourism"~"^(hotel|guest_house|hostel|apartment|chalet|resort|motel|camp_site)$"]'];
   }
 }
 
-interface PlacesResult {
-  place_id: string;
-  name?: string;
-  vicinity?: string;
-  formatted_address?: string;
-  geometry?: { location?: { lat?: number; lng?: number } };
-  types?: string[];
+interface OverpassElement {
+  type: 'node' | 'way' | 'relation';
+  id: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
 }
 
-async function fetchNearby(
-  apiKey: string,
-  params: { lat: number; lng: number; radius: number; keyword: string; pagetoken?: string }
-): Promise<{ results: PlacesResult[]; next_page_token?: string }> {
-  const url = new URL('https://maps.googleapis.com/maps/api/place/nearbysearch/json');
-  url.searchParams.set('key', apiKey);
-  url.searchParams.set('location', `${params.lat},${params.lng}`);
-  url.searchParams.set('radius', String(params.radius));
-  url.searchParams.set('keyword', params.keyword);
-  if (params.pagetoken) url.searchParams.set('pagetoken', params.pagetoken);
+function osmElementUrl(el: OverpassElement): string {
+  return `https://www.openstreetmap.org/${el.type}/${el.id}`;
+}
 
-  const res = await fetch(url.toString());
+function pickContactUrl(tags: Record<string, string> | undefined, fallback: string): string {
+  if (!tags) return fallback;
+  return tags['contact:website'] || tags['website'] || tags['url'] || fallback;
+}
+
+function pickLocationName(tags: Record<string, string> | undefined): string {
+  if (!tags) return 'Western Cape';
+  return (
+    tags['addr:suburb'] ||
+    tags['addr:city'] ||
+    tags['addr:town'] ||
+    tags['addr:village'] ||
+    tags['addr:county'] ||
+    tags['addr:state'] ||
+    'Western Cape'
+  );
+}
+
+async function fetchOverpass(overpassUrl: string, query: string): Promise<OverpassElement[]> {
+  const res = await fetch(overpassUrl, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded; charset=utf-8' },
+    body: `data=${encodeURIComponent(query)}`,
+  });
   const body = await res.json();
-  if (!res.ok) {
-    throw new Error(`Places HTTP ${res.status}`);
-  }
-  if (body.status && body.status !== 'OK' && body.status !== 'ZERO_RESULTS') {
-    throw new Error(`Places status ${body.status}: ${body.error_message ?? 'unknown error'}`);
-  }
-  return { results: body.results ?? [], next_page_token: body.next_page_token };
+  if (!res.ok) throw new Error(`Overpass HTTP ${res.status}`);
+  if (!body || !Array.isArray(body.elements)) return [];
+  return body.elements as OverpassElement[];
 }
 
 Deno.serve(async (req) => {
@@ -86,8 +94,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const placesKey = Deno.env.get('GOOGLE_PLACES_API_KEY');
-    if (!placesKey) return json({ error: 'Missing GOOGLE_PLACES_API_KEY' }, { status: 500 });
+    const overpassUrl = Deno.env.get('OVERPASS_URL') ?? 'https://overpass-api.de/api/interpreter';
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceRole = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -97,8 +104,6 @@ Deno.serve(async (req) => {
 
     const input: SeedRequest = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
     const dryRun = !!input.dryRun;
-    const center = input.center ?? DEFAULT_CENTER;
-    const radiusMeters = input.radiusMeters ?? DEFAULT_RADIUS_METERS;
     const types = (input.types?.length ? input.types : DEFAULT_TYPES).filter(Boolean);
 
     const supabase = createClient(supabaseUrl, serviceRole, {
@@ -106,7 +111,7 @@ Deno.serve(async (req) => {
     });
 
     const discovered: Array<{
-      source: 'google_places';
+      source: 'osm';
       source_id: string;
       type: ListingType;
       name: string;
@@ -118,40 +123,54 @@ Deno.serve(async (req) => {
     }> = [];
 
     for (const type of types) {
-      const keywords = getKeywordsForType(type);
-      for (const keyword of keywords) {
-        let pagetoken: string | undefined;
-        let page = 0;
-        do {
-          // next_page_token needs a short delay to become valid
-          if (pagetoken) await sleep(2000);
-          const { results, next_page_token } = await fetchNearby(placesKey, {
-            lat: center.lat,
-            lng: center.lng,
-            radius: radiusMeters,
-            keyword,
-            pagetoken,
+      const filters = getOverpassFiltersForType(type);
+      for (const filter of filters) {
+        const query = `
+[out:json][timeout:60];
+area["name"="Western Cape"]["boundary"="administrative"]->.wc;
+(
+  nwr(area.wc)${filter};
+);
+out center tags;
+        `.trim();
+
+        const elements = await fetchOverpass(overpassUrl, query);
+        // Gentle pause to avoid hammering public Overpass instances
+        await sleep(750);
+
+        for (const el of elements) {
+          const tags = el.tags ?? {};
+          const name = tags['name'];
+          if (!name) continue;
+
+          const lat =
+            el.type === 'node'
+              ? (el.lat ?? null)
+              : (el.center?.lat ?? null);
+          const lng =
+            el.type === 'node'
+              ? (el.lon ?? null)
+              : (el.center?.lon ?? null);
+
+          const source_id = `${el.type}/${el.id}`;
+          const fallbackUrl = osmElementUrl(el);
+          discovered.push({
+            source: 'osm',
+            source_id,
+            type,
+            name,
+            location_name: pickLocationName(tags),
+            lat: lat == null ? null : Number(lat),
+            lng: lng == null ? null : Number(lng),
+            contact_url: pickContactUrl(tags, fallbackUrl),
+            tags: [
+              ...(tags['shop'] ? [`shop=${tags['shop']}`] : []),
+              ...(tags['amenity'] ? [`amenity=${tags['amenity']}`] : []),
+              ...(tags['tourism'] ? [`tourism=${tags['tourism']}`] : []),
+              ...(tags['craft'] ? [`craft=${tags['craft']}`] : []),
+            ].slice(0, 6),
           });
-          for (const r of results) {
-            if (!r.place_id || !r.name) continue;
-            const lat = r.geometry?.location?.lat ?? null;
-            const lng = r.geometry?.location?.lng ?? null;
-            const location_name = r.vicinity ?? r.formatted_address ?? 'Western Cape';
-            discovered.push({
-              source: 'google_places',
-              source_id: r.place_id,
-              type,
-              name: r.name,
-              location_name,
-              lat: lat == null ? null : Number(lat),
-              lng: lng == null ? null : Number(lng),
-              contact_url: `https://www.google.com/maps/place/?q=place_id:${r.place_id}`,
-              tags: Array.isArray(r.types) ? r.types.slice(0, 6) : [],
-            });
-          }
-          pagetoken = next_page_token;
-          page += 1;
-        } while (pagetoken && page < 3);
+        }
       }
     }
 
@@ -165,8 +184,7 @@ Deno.serve(async (req) => {
     if (dryRun) {
       return json({
         dryRun: true,
-        center,
-        radiusMeters,
+        overpassUrl,
         requestedTypes: types,
         discoveredCount: discovered.length,
         dedupedCount: rows.length,
@@ -209,8 +227,7 @@ Deno.serve(async (req) => {
 
     return json({
       ok: true,
-      center,
-      radiusMeters,
+      overpassUrl,
       requestedTypes: types,
       upserted: upsertRows.length,
     });
