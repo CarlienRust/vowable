@@ -9,13 +9,14 @@ import chatbotIcon from '../assets/chatbot.png';
 import budgetIcon from '../assets/budget.png';
 import checklistIcon from '../assets/checklist.png';
 import savedIcon from '../assets/saved.png';
+import moodboardIcon from '../assets/moodboard.png';
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
 const navItems = [
-  { path: '/moodboard', label: 'Moodboard', icon: savedIcon },
+  { path: '/moodboard', label: 'Moodboard', icon: moodboardIcon },
   { path: '/explore', label: 'Explore', icon: exploreIcon },
   { path: '/chatbot', label: 'Assistant', icon: chatbotIcon },
 ];
