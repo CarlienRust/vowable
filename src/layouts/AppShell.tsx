@@ -15,10 +15,13 @@ interface AppShellProps {
 }
 
 const navItems = [
-  { path: '/dashboard', label: 'Plan', icon: dashboardIcon },
   { path: '/explore', label: 'Explore', icon: exploreIcon },
   { path: '/chatbot', label: 'Assistant', icon: chatbotIcon },
   { path: '/moodboard', label: 'Moodboard', icon: savedIcon },
+];
+
+const dropdownNavItems = [
+  { path: '/dashboard', label: 'Plan', icon: dashboardIcon },
   { path: '/budget', label: 'Budget', icon: budgetIcon },
   { path: '/checklist', label: 'Checklist', icon: checklistIcon },
   { path: '/saved', label: 'Saved', icon: savedIcon },
@@ -171,6 +174,38 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 >
                   Account Details
                 </div>
+                {dropdownNavItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setDropdownOpen(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.spacing.sm,
+                      padding: theme.spacing.sm,
+                      fontSize: theme.typography.fontSize.sm,
+                      color: theme.colors.text.primary,
+                      textDecoration: 'none',
+                      borderRadius: theme.borderRadius.sm,
+                      marginBottom: theme.spacing.xs,
+                      transition: 'background-color 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.colors.background;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                  >
+                    <img
+                      src={item.icon}
+                      alt=""
+                      style={{ width: '18px', height: '18px', objectFit: 'contain' }}
+                    />
+                    {item.label}
+                  </Link>
+                ))}
                 {isAdmin && (
                   <Link
                     to="/admin/listings/new"
