@@ -49,6 +49,11 @@ All tables use RLS with user-scoped (or admin) policies. No cross-user data leak
 3. **Listings query**  
    - Already uses `eq('status', 'published')` and `order('name')`. Composite index (status, type) added for type-filtered views. For very large listing tables (e.g. 10k+ rows), consider pagination or cursor-based load next.
 
+4. **Vendor auto-seeding (Google Places)**
+   - External source tracking added in migration `005_listings_sources.sql` (`listings.source`, `listings.source_id`) with a unique index for safe upserts.
+   - Seed pipeline implemented as a Supabase Edge Function: `supabase/functions/seed-vendors`.
+   - Intended schedule: weekly (cron) to keep Explore populated for Western Cape without scraping.
+
 ---
 
 ## Recommendations going forward
@@ -98,3 +103,21 @@ All tables use RLS with user-scoped (or admin) policies. No cross-user data leak
 - **Architecture** is clear and fits a 1000+ user product: single store, Supabase-only backend, RLS, sensible indexes.
 - **Schema** covers core functions (wedding, saved, checklist, moodboard, enquiries, listings) and is ready to scale with the added composite indexes and parallel load.
 - **Next steps** with highest impact: add listing pagination/limits when the catalogue grows, and move budget data into Supabase for consistency and reliability.
+
+---
+
+## Vendor seeding (operational notes)
+
+- **Function**: `seed-vendors` (Supabase Edge Function)
+  - Upserts into `listings` with `source='google_places'` and `source_id=<place_id>`.
+  - Inserts as `status='published'` (visible immediately in Explore).
+  - Supports `dryRun: true` in POST body for safe testing.
+
+- **Required secrets (Supabase)**:
+  - `GOOGLE_PLACES_API_KEY`
+  - `SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - Optional: `SEED_VENDORS_ADMIN_KEY` (required header `x-seed-admin-key` when set)
+
+- **Weekly schedule**:
+  - If you don’t have Supabase cron available in-repo, use a GitHub Actions scheduled workflow to POST to the function endpoint (see `.github/workflows/seed-vendors-weekly.yml`).

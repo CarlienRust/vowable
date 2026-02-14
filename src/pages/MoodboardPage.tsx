@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
+import { Modal } from '../components/ui/Modal';
 import { theme } from '../styles/theme';
 import { fetchBoardPreviews, parseBoardUrl } from '../services/pinterest.service';
 import { moodboardService, MoodboardItem } from '../services/moodboard.service';
@@ -22,6 +23,10 @@ export const MoodboardPage: React.FC = () => {
   const [pinterestBoardUrl, setPinterestBoardUrl] = useState('');
   const [loadingBoard, setLoadingBoard] = useState(false);
   const [defaultBoardPreviews, setDefaultBoardPreviews] = useState<string[]>([]);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState<string>('Pinterest preview');
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [previewUrl, setPreviewUrl] = useState<string>(DEFAULT_MOODBOARD_PINTEREST_URL);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,13 +77,20 @@ export const MoodboardPage: React.FC = () => {
 
   // Load preview images for default Vowable board when moodboard is empty
   useEffect(() => {
-    if (loading || items.length > 0) return;
+    if (loading) return;
     let cancelled = false;
     fetchBoardPreviews(DEFAULT_MOODBOARD_PINTEREST_URL, 6).then((urls) => {
       if (!cancelled) setDefaultBoardPreviews(urls);
     });
     return () => { cancelled = true; };
-  }, [loading, items.length]);
+  }, [loading]);
+
+  const openPreview = (title: string, url: string, images?: string[]) => {
+    setPreviewTitle(title);
+    setPreviewUrl(url);
+    setPreviewImages(images ?? []);
+    setPreviewOpen(true);
+  };
 
   const persistItem = async (item: Omit<MoodboardItem, 'id'>) => {
     const user = await authService.getUser();
@@ -290,52 +302,60 @@ export const MoodboardPage: React.FC = () => {
             color: theme.colors.text.secondary,
           }}
         >
-          Paste your Pinterest board URL to link it to your moodboard.
+          Paste your Pinterest board URL to link it to your moodboard. You can link multiple boards.
         </p>
       </Card>
 
-      {items.length === 0 ? (
-        <>
-          <p
-            style={{
-              marginBottom: theme.spacing.md,
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.text.secondary,
-            }}
-          >
-            Default inspiration board. Add your own images, links, or link your Pinterest board above to build your moodboard.
-          </p>
-          <Card style={{ maxWidth: '400px' }}>
+      <div style={{ marginBottom: theme.spacing.lg }}>
+        <h2
+          style={{
+            fontSize: theme.typography.fontSize.lg,
+            fontWeight: theme.typography.fontWeight.semibold,
+            marginBottom: theme.spacing.md,
+          }}
+        >
+          Suggested
+        </h2>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+            gap: theme.spacing.md,
+          }}
+        >
+          <Card style={{ position: 'relative' }}>
             <div>
               {defaultBoardPreviews.length > 0 ? (
-                <div
-                  style={{
-                    width: '100%',
-                    minHeight: '200px',
-                    borderRadius: theme.borderRadius.md,
-                    marginBottom: theme.spacing.sm,
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: theme.spacing.xs,
-                  }}
-                >
-                  {defaultBoardPreviews.slice(0, 4).map((imageUrl, idx) => (
-                    <img
-                      key={idx}
-                      src={imageUrl}
-                      alt={`Preview ${idx + 1}`}
-                      style={{
-                        width: '100%',
-                        height: '100px',
-                        objectFit: 'cover',
-                        borderRadius: theme.borderRadius.sm,
-                        border: `1px solid ${theme.colors.border}`,
-                      }}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  ))}
+                <div style={{ position: 'relative', marginBottom: theme.spacing.sm }}>
+                  <img
+                    src={defaultBoardPreviews[0]}
+                    alt="Vowable Pinterest cover"
+                    style={{
+                      width: '100%',
+                      height: '200px',
+                      objectFit: 'cover',
+                      borderRadius: theme.borderRadius.md,
+                      border: `1px solid ${theme.colors.border}`,
+                    }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: theme.spacing.sm,
+                      left: theme.spacing.sm,
+                      backgroundColor: 'rgba(0,0,0,0.6)',
+                      color: '#fff',
+                      padding: '4px 8px',
+                      borderRadius: theme.borderRadius.full,
+                      fontSize: theme.typography.fontSize.xs,
+                      fontWeight: theme.typography.fontWeight.medium,
+                    }}
+                  >
+                    Pinterest
+                  </div>
                 </div>
               ) : (
                 <div
@@ -360,10 +380,11 @@ export const MoodboardPage: React.FC = () => {
                       color: theme.colors.text.secondary,
                     }}
                   >
-                    Vowable on Pinterest
+                    Preview unavailable
                   </span>
                 </div>
               )}
+
               <h3
                 style={{
                   fontSize: theme.typography.fontSize.sm,
@@ -373,23 +394,47 @@ export const MoodboardPage: React.FC = () => {
               >
                 Vowable
               </h3>
-              <a
-                href={DEFAULT_MOODBOARD_PINTEREST_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.accent.primary,
-                  textDecoration: 'none',
-                  wordBreak: 'break-all',
-                  display: 'block',
-                }}
-              >
-                View on Pinterest →
-              </a>
+              <div style={{ display: 'flex', gap: theme.spacing.sm, alignItems: 'center' }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openPreview('Vowable (Pinterest)', DEFAULT_MOODBOARD_PINTEREST_URL, defaultBoardPreviews)}
+                  disabled={defaultBoardPreviews.length === 0}
+                >
+                  Preview
+                </Button>
+                <a
+                  href={DEFAULT_MOODBOARD_PINTEREST_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    color: theme.colors.accent.primary,
+                    textDecoration: 'none',
+                    wordBreak: 'break-all',
+                    display: 'block',
+                  }}
+                >
+                  View on Pinterest →
+                </a>
+              </div>
             </div>
           </Card>
-        </>
+        </div>
+      </div>
+
+      {items.length === 0 ? (
+        <Card>
+          <p
+            style={{
+              textAlign: 'center',
+              color: theme.colors.text.secondary,
+              padding: theme.spacing.xl,
+            }}
+          >
+            Your moodboard is empty. Add images, links, or link a Pinterest board to get started!
+          </p>
+        </Card>
       ) : (
         <div
           style={{
@@ -465,34 +510,36 @@ export const MoodboardPage: React.FC = () => {
               ) : item.type === 'pinterest' ? (
                 <div>
                   {item.previewImages && item.previewImages.length > 0 ? (
-                    <div
-                      style={{
-                        width: '100%',
-                        minHeight: '200px',
-                        borderRadius: theme.borderRadius.md,
-                        marginBottom: theme.spacing.sm,
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(2, 1fr)',
-                        gap: theme.spacing.xs,
-                      }}
-                    >
-                      {item.previewImages.slice(0, 4).map((imageUrl, idx) => (
-                        <img
-                          key={idx}
-                          src={imageUrl}
-                          alt={`Preview ${idx + 1}`}
-                          style={{
-                            width: '100%',
-                            height: '100px',
-                            objectFit: 'cover',
-                            borderRadius: theme.borderRadius.sm,
-                            border: `1px solid ${theme.colors.border}`,
-                          }}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      ))}
+                    <div style={{ position: 'relative', marginBottom: theme.spacing.sm }}>
+                      <img
+                        src={item.previewImages[0]}
+                        alt={item.title || 'Pinterest Board'}
+                        style={{
+                          width: '100%',
+                          height: '200px',
+                          objectFit: 'cover',
+                          borderRadius: theme.borderRadius.md,
+                          border: `1px solid ${theme.colors.border}`,
+                        }}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: theme.spacing.sm,
+                          left: theme.spacing.sm,
+                          backgroundColor: 'rgba(0,0,0,0.6)',
+                          color: '#fff',
+                          padding: '4px 8px',
+                          borderRadius: theme.borderRadius.full,
+                          fontSize: theme.typography.fontSize.xs,
+                          fontWeight: theme.typography.fontWeight.medium,
+                        }}
+                      >
+                        Pinterest
+                      </div>
                     </div>
                   ) : (
                     <div
@@ -530,21 +577,31 @@ export const MoodboardPage: React.FC = () => {
                   >
                     {item.title || 'Pinterest Board'}
                   </h3>
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      fontSize: theme.typography.fontSize.xs,
-                      color: theme.colors.accent.primary,
-                      textDecoration: 'none',
-                      wordBreak: 'break-all',
-                      marginBottom: theme.spacing.xs,
-                      display: 'block',
-                    }}
-                  >
-                    View on Pinterest →
-                  </a>
+                  <div style={{ display: 'flex', gap: theme.spacing.sm, alignItems: 'center' }}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openPreview(item.title || 'Pinterest Board', item.url, item.previewImages)}
+                      disabled={!item.previewImages || item.previewImages.length === 0}
+                    >
+                      Preview
+                    </Button>
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontSize: theme.typography.fontSize.xs,
+                        color: theme.colors.accent.primary,
+                        textDecoration: 'none',
+                        wordBreak: 'break-all',
+                        marginBottom: theme.spacing.xs,
+                        display: 'block',
+                      }}
+                    >
+                      View on Pinterest →
+                    </a>
+                  </div>
                 </div>
               ) : (
                 <div>
@@ -591,6 +648,74 @@ export const MoodboardPage: React.FC = () => {
           ))}
         </div>
       )}
+
+      <Modal
+        open={previewOpen}
+        title={previewTitle}
+        onClose={() => setPreviewOpen(false)}
+        maxWidth="900px"
+      >
+        <p
+          style={{
+            marginTop: 0,
+            marginBottom: theme.spacing.md,
+            fontSize: theme.typography.fontSize.sm,
+            color: theme.colors.text.secondary,
+          }}
+        >
+          Preview images (stored). For full board details, open Pinterest.
+        </p>
+
+        {previewImages.length > 0 ? (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+              gap: theme.spacing.sm,
+              marginBottom: theme.spacing.md,
+            }}
+          >
+            {previewImages.slice(0, 12).map((url, idx) => (
+              <img
+                key={idx}
+                src={url}
+                alt={`Preview ${idx + 1}`}
+                style={{
+                  width: '100%',
+                  height: '160px',
+                  objectFit: 'cover',
+                  borderRadius: theme.borderRadius.md,
+                  border: `1px solid ${theme.colors.border}`,
+                }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card style={{ backgroundColor: theme.colors.background }}>
+            <p style={{ color: theme.colors.text.secondary, margin: 0 }}>
+              No stored preview images available for this board.
+            </p>
+          </Card>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <a
+            href={previewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.accent.primary,
+              textDecoration: 'none',
+            }}
+          >
+            Open in Pinterest →
+          </a>
+        </div>
+      </Modal>
     </div>
   );
 };

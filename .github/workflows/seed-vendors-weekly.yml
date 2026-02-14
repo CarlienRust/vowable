@@ -1,0 +1,27 @@
+name: Seed vendors (weekly)
+
+on:
+  schedule:
+    # Weekly (Mondays 05:00 UTC)
+    - cron: "0 5 * * 1"
+  workflow_dispatch: {}
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call seed-vendors edge function
+        env:
+          SEED_VENDORS_FUNCTION_URL: ${{ secrets.SEED_VENDORS_FUNCTION_URL }}
+          SEED_VENDORS_ADMIN_KEY: ${{ secrets.SEED_VENDORS_ADMIN_KEY }}
+        run: |
+          if [ -z "$SEED_VENDORS_FUNCTION_URL" ]; then
+            echo "Missing SEED_VENDORS_FUNCTION_URL secret"
+            exit 1
+          fi
+
+          curl -sS -X POST "$SEED_VENDORS_FUNCTION_URL" \
+            -H "content-type: application/json" \
+            ${SEED_VENDORS_ADMIN_KEY:+ -H "x-seed-admin-key: $SEED_VENDORS_ADMIN_KEY"} \
+            --data '{"dryRun": false}'
+
