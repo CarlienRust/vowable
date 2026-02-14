@@ -16,7 +16,7 @@ export const LandingPage: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: theme.colors.background,
-        backgroundImage: `linear-gradient(rgba(250,250,250,0.86), rgba(250,250,250,0.86)), url(${champagneBg})`,
+        backgroundImage: `linear-gradient(rgba(250,250,250,0.2), rgba(250,250,250,0.2)), url(${champagneBg})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',

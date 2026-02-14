@@ -12,7 +12,7 @@ import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 import { Tag } from '../components/ui/Tag';
 import { theme } from '../styles/theme';
-import eraBg from '../assets/backgrounds/era.png';
+import streetBg from '../assets/backgrounds/street.png';
 
 export const SavedPage: React.FC = () => {
   const savedItems = useWeddingPlanStore((state) => state.savedItems);
@@ -85,7 +85,7 @@ export const SavedPage: React.FC = () => {
           margin: '0 auto',
           padding: theme.spacing.xl,
           backgroundColor: theme.colors.background,
-          backgroundImage: `linear-gradient(rgba(250,250,250,0.92), rgba(250,250,250,0.92)), url(${eraBg})`,
+          backgroundImage: `linear-gradient(rgba(250,250,250,0.2), rgba(250,250,250,0.2)), url(${streetBg})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -115,7 +115,7 @@ export const SavedPage: React.FC = () => {
         margin: '0 auto',
         padding: theme.spacing.xl,
         backgroundColor: theme.colors.background,
-        backgroundImage: `linear-gradient(rgba(250,250,250,0.92), rgba(250,250,250,0.92)), url(${eraBg})`,
+        backgroundImage: `linear-gradient(rgba(250,250,250,0.2), rgba(250,250,250,0.2)), url(${streetBg})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',

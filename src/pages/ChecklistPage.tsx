@@ -86,7 +86,7 @@ export const ChecklistPage: React.FC = () => {
         margin: '0 auto',
         padding: theme.spacing.xl,
         backgroundColor: theme.colors.background,
-        backgroundImage: `linear-gradient(rgba(250,250,250,0.92), rgba(250,250,250,0.92)), url(${newspaperBg})`,
+        backgroundImage: `linear-gradient(rgba(250,250,250,0.2), rgba(250,250,250,0.2)), url(${newspaperBg})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',

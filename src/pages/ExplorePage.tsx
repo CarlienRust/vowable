@@ -140,7 +140,7 @@ export const ExplorePage: React.FC = () => {
         margin: '0 auto',
         padding: theme.spacing.xl,
         backgroundColor: theme.colors.background,
-        backgroundImage: `linear-gradient(rgba(250,250,250,0.9), rgba(250,250,250,0.9)), url(${streetBg})`,
+        backgroundImage: `linear-gradient(rgba(250,250,250,0.2), rgba(250,250,250,0.2)), url(${streetBg})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
