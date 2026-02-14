@@ -10,6 +10,11 @@ import budgetIcon from '../assets/budget.png';
 import checklistIcon from '../assets/checklist.png';
 import savedIcon from '../assets/saved.png';
 import moodboardIcon from '../assets/moodboard.png';
+import champagneBg from '../assets/backgrounds/champagne.png';
+import newspaperBg from '../assets/backgrounds/newspaper.png';
+import streetBg from '../assets/backgrounds/street.png';
+import runBg from '../assets/backgrounds/run.png';
+import shoeBg from '../assets/backgrounds/shoe.png';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -72,6 +77,19 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     navigate('/');
   };
 
+  const getSplashBackground = (pathname: string): string | null => {
+    if (pathname.startsWith('/explore')) return streetBg;
+    if (pathname.startsWith('/chatbot')) return runBg;
+    if (pathname.startsWith('/budget')) return champagneBg;
+    if (pathname.startsWith('/checklist')) return newspaperBg;
+    if (pathname.startsWith('/saved')) return streetBg;
+    if (pathname.startsWith('/moodboard')) return shoeBg;
+    if (pathname.startsWith('/dashboard')) return champagneBg;
+    return null;
+  };
+
+  const splash = getSplashBackground(location.pathname);
+
   return (
     <div
       style={{
@@ -79,6 +97,14 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: theme.colors.background,
+        ...(splash
+          ? {
+              backgroundImage: `url(${splash})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+            }
+          : {}),
       }}
     >
       {user && (

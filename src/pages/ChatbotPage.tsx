@@ -15,7 +15,6 @@ import { ChatbotInterface } from '../components/chatbot/ChatbotInterface';
 import { Button } from '../components/ui/Button';
 import { listingsService } from '../services/listings.service';
 import { theme } from '../styles/theme';
-import runBg from '../assets/backgrounds/run.png';
 
 export const ChatbotPage: React.FC = () => {
   const wedding = useWeddingPlanStore((state) => state.wedding);
@@ -195,11 +194,6 @@ What would you like to find?`,
         maxWidth: '1000px',
         margin: '0 auto',
         padding: theme.spacing.xl,
-        backgroundColor: theme.colors.background,
-        backgroundImage: `linear-gradient(rgba(250,250,250,0.2), rgba(250,250,250,0.2)), url(${runBg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
         minHeight: 'calc(100vh - 180px)',
         display: 'flex',
         flexDirection: 'column',
