@@ -17,6 +17,16 @@ export const theme = {
     warning: '#FF9800',
     error: '#F44336',
   },
+  controls: {
+    /** Standard single-line control height (Input/Select/Button). */
+    heightMd: '44px',
+    /** Tighter controls for compact UIs (optional). */
+    heightSm: '36px',
+    /** Larger controls for prominent CTAs (optional). */
+    heightLg: '52px',
+    /** Horizontal padding used when height is fixed. */
+    paddingX: '1rem',
+  },
   spacing: {
     xs: '0.25rem',   // 4px
     sm: '0.5rem',    // 8px

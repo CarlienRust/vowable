@@ -45,15 +45,18 @@ export const Button: React.FC<ButtonProps> = ({
 
   const sizeStyles: Record<string, React.CSSProperties> = {
     sm: {
-      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+      height: theme.controls.heightSm,
+      padding: `0 ${theme.spacing.md}`,
       fontSize: theme.typography.fontSize.sm,
     },
     md: {
-      padding: `${theme.spacing.md} ${theme.spacing.lg}`,
+      height: theme.controls.heightMd,
+      padding: `0 ${theme.spacing.lg}`,
       fontSize: theme.typography.fontSize.base,
     },
     lg: {
-      padding: `${theme.spacing.lg} ${theme.spacing.xl}`,
+      height: theme.controls.heightLg,
+      padding: `0 ${theme.spacing.xl}`,
       fontSize: theme.typography.fontSize.lg,
     },
   };

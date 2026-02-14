@@ -26,7 +26,9 @@ export const Select: React.FC<SelectProps> = ({ label, error, options, style, ..
       <select
         style={{
           width: '100%',
-          padding: theme.spacing.md,
+          boxSizing: 'border-box',
+          height: theme.controls.heightMd,
+          padding: `0 ${theme.controls.paddingX}`,
           fontSize: theme.typography.fontSize.base,
           fontFamily: theme.typography.fontFamily.primary,
           border: `1px solid ${error ? theme.colors.error : theme.colors.border}`,

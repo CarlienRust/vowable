@@ -219,7 +219,13 @@ export const OnboardingPage: React.FC = () => {
               >
                 Theme Keywords (3)
               </label>
-              <div style={{ display: 'flex', gap: theme.spacing.sm }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                  gap: theme.spacing.sm,
+                }}
+              >
                 <Input
                   value={themeTag1}
                   onChange={(e) => setThemeTag1(e.target.value)}
@@ -254,8 +260,8 @@ export const OnboardingPage: React.FC = () => {
                   value={color1 || '#000000'}
                   onChange={(e) => setColor1(e.target.value)}
                   style={{ 
-                    width: '100px', 
-                    height: '60px',
+                    width: '88px', 
+                    height: theme.controls.heightMd,
                     padding: 0,
                     border: `2px solid ${theme.colors.border}`,
                     borderRadius: theme.borderRadius.md,
@@ -267,8 +273,8 @@ export const OnboardingPage: React.FC = () => {
                   value={color2 || '#000000'}
                   onChange={(e) => setColor2(e.target.value)}
                   style={{ 
-                    width: '100px', 
-                    height: '60px',
+                    width: '88px', 
+                    height: theme.controls.heightMd,
                     padding: 0,
                     border: `2px solid ${theme.colors.border}`,
                     borderRadius: theme.borderRadius.md,
@@ -280,8 +286,8 @@ export const OnboardingPage: React.FC = () => {
                   value={color3 || '#000000'}
                   onChange={(e) => setColor3(e.target.value)}
                   style={{ 
-                    width: '100px', 
-                    height: '60px',
+                    width: '88px', 
+                    height: theme.controls.heightMd,
                     padding: 0,
                     border: `2px solid ${theme.colors.border}`,
                     borderRadius: theme.borderRadius.md,

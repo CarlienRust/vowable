@@ -193,7 +193,7 @@ const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ categoryOptions, onAdd 
           onChange={(e) => setDescription(e.target.value)}
           style={{ minWidth: '180px' }}
         />
-        <Button type="submit" disabled={!amount.trim()}>
+        <Button type="submit" disabled={!amount.trim()} style={{ width: '100%' }}>
           Add expense
         </Button>
       </div>

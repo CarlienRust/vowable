@@ -9,6 +9,10 @@ import { authService } from '../services/auth.service';
 
 const MOODBOARD_LOCAL_KEY = 'moodboard_items';
 
+/** Default moodboard shown until the user adds or links their own. Vowable Pinterest board. */
+const DEFAULT_MOODBOARD_PINTEREST_URL =
+  'https://za.pinterest.com/carlienrust/vowable/?request_params=%7B%221%22%3A%20130%2C%20%227%22%3A%204705014969931794954%2C%20%228%22%3A%20316448380007027528%2C%20%2230%22%3A%20%22Vowable%22%2C%20%2232%22%3A%2045%2C%20%2233%22%3A%20%5B316448311347194925%2C%20316448311347194924%2C%20316448311347194742%2C%20316448311347194737%2C%20316448311347194724%2C%20316448311347194654%2C%20316448311347194653%2C%20316448311347194648%2C%20316448311347186323%2C%20316448311347186319%2C%20316448311347186318%2C%20316448311347186315%2C%20316448311347185520%2C%20316448311347185518%2C%20316448311347185517%2C%20316448311347185513%5D%2C%20%2236%22%3A%20%5B316448380007027528%5D%2C%20%2237%22%3A%20%22Vowable%22%2C%20%2234%22%3A%200%2C%20%22102%22%3A%204%7D&full_feed_title=Vowable&view_parameter_type=3069&pins_display=3';
+
 export const MoodboardPage: React.FC = () => {
   const [items, setItems] = useState<MoodboardItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +21,7 @@ export const MoodboardPage: React.FC = () => {
   const [newItemTitle, setNewItemTitle] = useState('');
   const [pinterestBoardUrl, setPinterestBoardUrl] = useState('');
   const [loadingBoard, setLoadingBoard] = useState(false);
+  const [defaultBoardPreviews, setDefaultBoardPreviews] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,6 +69,16 @@ export const MoodboardPage: React.FC = () => {
     load();
     return () => { cancelled = true; };
   }, []);
+
+  // Load preview images for default Vowable board when moodboard is empty
+  useEffect(() => {
+    if (loading || items.length > 0) return;
+    let cancelled = false;
+    fetchBoardPreviews(DEFAULT_MOODBOARD_PINTEREST_URL, 6).then((urls) => {
+      if (!cancelled) setDefaultBoardPreviews(urls);
+    });
+    return () => { cancelled = true; };
+  }, [loading, items.length]);
 
   const persistItem = async (item: Omit<MoodboardItem, 'id'>) => {
     const user = await authService.getUser();
@@ -280,17 +295,101 @@ export const MoodboardPage: React.FC = () => {
       </Card>
 
       {items.length === 0 ? (
-        <Card>
+        <>
           <p
             style={{
-              textAlign: 'center',
+              marginBottom: theme.spacing.md,
+              fontSize: theme.typography.fontSize.sm,
               color: theme.colors.text.secondary,
-              padding: theme.spacing.xl,
             }}
           >
-            Your moodboard is empty. Add images, links, or link a Pinterest board to get started!
+            Default inspiration board. Add your own images, links, or link your Pinterest board above to build your moodboard.
           </p>
-        </Card>
+          <Card style={{ maxWidth: '400px' }}>
+            <div>
+              {defaultBoardPreviews.length > 0 ? (
+                <div
+                  style={{
+                    width: '100%',
+                    minHeight: '200px',
+                    borderRadius: theme.borderRadius.md,
+                    marginBottom: theme.spacing.sm,
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: theme.spacing.xs,
+                  }}
+                >
+                  {defaultBoardPreviews.slice(0, 4).map((imageUrl, idx) => (
+                    <img
+                      key={idx}
+                      src={imageUrl}
+                      alt={`Preview ${idx + 1}`}
+                      style={{
+                        width: '100%',
+                        height: '100px',
+                        objectFit: 'cover',
+                        borderRadius: theme.borderRadius.sm,
+                        border: `1px solid ${theme.colors.border}`,
+                      }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    width: '100%',
+                    height: '200px',
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: theme.borderRadius.md,
+                    marginBottom: theme.spacing.sm,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: `1px solid ${theme.colors.border}`,
+                    flexDirection: 'column',
+                    gap: theme.spacing.xs,
+                  }}
+                >
+                  <span style={{ fontSize: '48px' }}>📌</span>
+                  <span
+                    style={{
+                      fontSize: theme.typography.fontSize.xs,
+                      color: theme.colors.text.secondary,
+                    }}
+                  >
+                    Vowable on Pinterest
+                  </span>
+                </div>
+              )}
+              <h3
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  marginBottom: theme.spacing.xs,
+                }}
+              >
+                Vowable
+              </h3>
+              <a
+                href={DEFAULT_MOODBOARD_PINTEREST_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.accent.primary,
+                  textDecoration: 'none',
+                  wordBreak: 'break-all',
+                  display: 'block',
+                }}
+              >
+                View on Pinterest →
+              </a>
+            </div>
+          </Card>
+        </>
       ) : (
         <div
           style={{
