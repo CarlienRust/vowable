@@ -4,7 +4,6 @@ import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { theme } from '../styles/theme';
-import shoeBg from '../assets/backgrounds/shoe.png';
 import { fetchBoardPreviews, parseBoardUrl } from '../services/pinterest.service';
 import { moodboardService, MoodboardItem } from '../services/moodboard.service';
 import { authService } from '../services/auth.service';
@@ -195,11 +194,6 @@ export const MoodboardPage: React.FC = () => {
           maxWidth: '1200px',
           margin: '0 auto',
           padding: theme.spacing.xl,
-          backgroundColor: theme.colors.background,
-          backgroundImage: `linear-gradient(rgba(250,250,250,0.2), rgba(250,250,250,0.2)), url(${shoeBg})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
           minHeight: 'calc(100vh - 180px)',
           display: 'flex',
           alignItems: 'center',
@@ -217,11 +211,6 @@ export const MoodboardPage: React.FC = () => {
         maxWidth: '1200px',
         margin: '0 auto',
         padding: theme.spacing.xl,
-        backgroundColor: theme.colors.background,
-        backgroundImage: `linear-gradient(rgba(250,250,250,0.2), rgba(250,250,250,0.2)), url(${shoeBg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
         minHeight: 'calc(100vh - 180px)',
       }}
     >
@@ -237,7 +226,8 @@ export const MoodboardPage: React.FC = () => {
           style={{
             fontSize: theme.typography.fontSize['3xl'],
             fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.text.primary,
+            color: 'rgba(255,255,255,0.95)',
+            textShadow: '0 2px 10px rgba(0,0,0,0.35)',
           }}
         >
           Moodboard

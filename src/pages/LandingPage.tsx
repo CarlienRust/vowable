@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button';
 import { Footer } from '../components/ui/Footer';
 import { theme } from '../styles/theme';
 import logo from '../assets/logo.png';
-import champagneBg from '../assets/backgrounds/champagne.png';
+import newspaperBg from '../assets/backgrounds/newspaper.png';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -16,7 +16,8 @@ export const LandingPage: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: theme.colors.background,
-        backgroundImage: `linear-gradient(rgba(250,250,250,0.2), rgba(250,250,250,0.2)), url(${champagneBg})`,
+        // Dark overlay for reliable text contrast
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(${newspaperBg})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
@@ -53,7 +54,8 @@ export const LandingPage: React.FC = () => {
               fontSize: theme.typography.fontSize['4xl'],
               fontWeight: theme.typography.fontWeight.bold,
               marginBottom: theme.spacing.lg,
-              color: theme.colors.text.primary,
+              color: 'rgba(255,255,255,0.95)',
+              textShadow: '0 2px 10px rgba(0,0,0,0.35)',
               lineHeight: theme.typography.lineHeight.tight,
             }}
           >
@@ -62,7 +64,8 @@ export const LandingPage: React.FC = () => {
           <p
             style={{
               fontSize: theme.typography.fontSize.xl,
-              color: theme.colors.text.secondary,
+              color: 'rgba(255,255,255,0.85)',
+              textShadow: '0 2px 10px rgba(0,0,0,0.35)',
               marginBottom: theme.spacing.xxl,
               lineHeight: theme.typography.lineHeight.relaxed,
             }}

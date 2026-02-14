@@ -152,7 +152,8 @@ export const ExplorePage: React.FC = () => {
           style={{
             fontSize: theme.typography.fontSize['3xl'],
             fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.text.primary,
+            color: 'rgba(255,255,255,0.95)',
+            textShadow: '0 2px 10px rgba(0,0,0,0.35)',
           }}
         >
           Explore Venues & Vendors

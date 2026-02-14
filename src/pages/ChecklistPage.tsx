@@ -91,7 +91,8 @@ export const ChecklistPage: React.FC = () => {
           fontSize: theme.typography.fontSize['3xl'],
           fontWeight: theme.typography.fontWeight.bold,
           marginBottom: theme.spacing.xl,
-          color: theme.colors.text.primary,
+          color: 'rgba(255,255,255,0.95)',
+          textShadow: '0 2px 10px rgba(0,0,0,0.35)',
         }}
       >
         Checklist
@@ -110,8 +111,9 @@ export const ChecklistPage: React.FC = () => {
                 fontSize: theme.typography.fontSize.xl,
                 fontWeight: theme.typography.fontWeight.semibold,
                 marginBottom: theme.spacing.md,
-                color: theme.colors.text.primary,
-                borderBottom: `2px solid ${theme.colors.border}`,
+                color: 'rgba(255,255,255,0.95)',
+                textShadow: '0 2px 10px rgba(0,0,0,0.35)',
+                borderBottom: '2px solid rgba(255,255,255,0.35)',
                 paddingBottom: theme.spacing.xs,
               }}
             >

@@ -6,7 +6,6 @@ import { formatDate } from '../domain/format';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { theme } from '../styles/theme';
-import champagneBg from '../assets/backgrounds/champagne.png';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -61,11 +60,6 @@ export const DashboardPage: React.FC = () => {
         maxWidth: '1000px',
         margin: '0 auto',
         padding: theme.spacing.xl,
-        backgroundColor: theme.colors.background,
-        backgroundImage: `linear-gradient(rgba(250,250,250,0.2), rgba(250,250,250,0.2)), url(${champagneBg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
       }}
     >
       <h1
@@ -73,7 +67,8 @@ export const DashboardPage: React.FC = () => {
           fontSize: theme.typography.fontSize['3xl'],
           fontWeight: theme.typography.fontWeight.bold,
           marginBottom: theme.spacing.xl,
-          color: theme.colors.text.primary,
+          color: 'rgba(255,255,255,0.95)',
+          textShadow: '0 2px 10px rgba(0,0,0,0.35)',
         }}
       >
         Wedding Profile

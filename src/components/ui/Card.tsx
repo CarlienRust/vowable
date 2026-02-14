@@ -11,7 +11,7 @@ export const Card: React.FC<CardProps> = ({ children, style, onClick }) => {
   return (
     <div
       style={{
-        backgroundColor: theme.colors.surface,
+        backgroundColor: 'rgba(255, 255, 255, 0.78)',
         borderRadius: theme.borderRadius.lg,
         padding: theme.spacing.lg,
         boxShadow: theme.shadows.md,
