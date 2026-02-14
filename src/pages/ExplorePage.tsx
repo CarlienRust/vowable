@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Listing, ListingType, PriceBand } from '../domain/types';
 import { useWeddingPlanStore } from '../state/useWeddingPlanStore';
-import { listingsService } from '../services/listings.service';
+import { listingsService, LISTINGS_PAGE_SIZE } from '../services/listings.service';
 import { enquiriesService } from '../services/enquiries.service';
 import { filterByRadius } from '../domain/geo';
 import { ListingCard } from '../components/listings/ListingCard';
@@ -34,7 +34,7 @@ export const ExplorePage: React.FC = () => {
     const type = selectedType === 'all' ? undefined : selectedType;
     const opts = {
       offset,
-      limit: listingsService.LISTINGS_PAGE_SIZE,
+      limit: LISTINGS_PAGE_SIZE,
       type,
     };
     const { data, hasMore } =
