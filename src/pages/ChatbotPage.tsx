@@ -228,10 +228,12 @@ What would you like to find?`,
       </div>
 
       {showIntake ? (
-        <div style={{ flexShrink: 0 }}>
+        <div style={{ flexShrink: 0 }} key="intake">
           <VendorIntakeForm
+            key="vendor-intake"
             onSubmit={handleIntakeSubmit}
             onCancel={undefined}
+            wedding={wedding}
           />
         </div>
       ) : (

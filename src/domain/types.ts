@@ -70,3 +70,10 @@ export interface BudgetAllocation {
   suggestedPercent: number;
   suggestedAmount: number;
 }
+
+export interface BudgetExpense {
+  id: string;
+  category: string;
+  amount: number;
+  description: string;
+}

@@ -15,13 +15,13 @@ interface AppShellProps {
 }
 
 const navItems = [
+  { path: '/moodboard', label: 'Moodboard', icon: savedIcon },
   { path: '/explore', label: 'Explore', icon: exploreIcon },
   { path: '/chatbot', label: 'Assistant', icon: chatbotIcon },
-  { path: '/moodboard', label: 'Moodboard', icon: savedIcon },
 ];
 
 const dropdownNavItems = [
-  { path: '/dashboard', label: 'Plan', icon: dashboardIcon },
+  { path: '/dashboard', label: 'Wedding Profile', icon: dashboardIcon },
   { path: '/budget', label: 'Budget', icon: budgetIcon },
   { path: '/checklist', label: 'Checklist', icon: checklistIcon },
   { path: '/saved', label: 'Saved', icon: savedIcon },

@@ -4,22 +4,14 @@ import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { theme } from '../styles/theme';
 import { fetchBoardPreviews, parseBoardUrl } from '../services/pinterest.service';
+import { moodboardService, MoodboardItem } from '../services/moodboard.service';
+import { authService } from '../services/auth.service';
 
-interface MoodboardItem {
-  id: string;
-  type: 'image' | 'pinterest' | 'link';
-  url: string;
-  title?: string;
-  description?: string;
-  thumbnail?: string;
-  previewImages?: string[];
-  extractedThemes?: string[];
-  extractedColors?: string[];
-  extractionDate?: string;
-}
+const MOODBOARD_LOCAL_KEY = 'moodboard_items';
 
 export const MoodboardPage: React.FC = () => {
   const [items, setItems] = useState<MoodboardItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newItemUrl, setNewItemUrl] = useState('');
   const [newItemTitle, setNewItemTitle] = useState('');
@@ -27,59 +19,106 @@ export const MoodboardPage: React.FC = () => {
   const [loadingBoard, setLoadingBoard] = useState(false);
 
   useEffect(() => {
-    // Load moodboard items from localStorage
-    const saved = localStorage.getItem('moodboard_items');
-    if (saved) {
-      try {
-        setItems(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to load moodboard items', e);
+    let cancelled = false;
+
+    const load = async () => {
+      const user = await authService.getUser();
+      if (!user || cancelled) {
+        setLoading(false);
+        return;
       }
-    }
+
+      const fromSupabase = await moodboardService.getMoodboardItems(user.id);
+      if (cancelled) return;
+
+      if (fromSupabase.length > 0) {
+        setItems(fromSupabase);
+        setLoading(false);
+        return;
+      }
+
+      const raw = localStorage.getItem(MOODBOARD_LOCAL_KEY);
+      if (raw) {
+        try {
+          const local: MoodboardItem[] = JSON.parse(raw);
+          if (local.length > 0) {
+            for (const it of local) {
+              const { id: _id, ...rest } = it;
+              await moodboardService.addMoodboardItem(user.id, rest);
+            }
+            localStorage.removeItem(MOODBOARD_LOCAL_KEY);
+            const merged = await moodboardService.getMoodboardItems(user.id);
+            if (!cancelled) setItems(merged);
+          }
+        } catch (e) {
+          console.error('Failed to migrate moodboard from localStorage', e);
+        }
+      }
+
+      if (!cancelled) {
+        setItems(fromSupabase.length > 0 ? fromSupabase : []);
+      }
+      setLoading(false);
+    };
+
+    load();
+    return () => { cancelled = true; };
   }, []);
 
-  const saveItems = (newItems: MoodboardItem[]) => {
-    setItems(newItems);
-    localStorage.setItem('moodboard_items', JSON.stringify(newItems));
+  const persistItem = async (item: Omit<MoodboardItem, 'id'>) => {
+    const user = await authService.getUser();
+    if (!user) return null;
+    const id = await moodboardService.addMoodboardItem(user.id, item);
+    if (id) {
+      setItems((prev) => [...prev, { ...item, id }]);
+      return id;
+    }
+    return null;
   };
 
-  const handleAddImage = () => {
+  const removeItem = async (id: string) => {
+    const ok = await moodboardService.removeMoodboardItem(id);
+    if (ok) setItems((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const handleAddImage = async () => {
     if (!newItemUrl.trim()) return;
 
-    const newItem: MoodboardItem = {
-      id: Date.now().toString(),
+    const newItem: Omit<MoodboardItem, 'id'> = {
       type: 'image',
       url: newItemUrl,
       title: newItemTitle || undefined,
       thumbnail: newItemUrl,
     };
 
-    saveItems([...items, newItem]);
-    setNewItemUrl('');
-    setNewItemTitle('');
-    setShowAddForm(false);
+    const id = await persistItem(newItem);
+    if (id) {
+      setNewItemUrl('');
+      setNewItemTitle('');
+      setShowAddForm(false);
+    }
   };
 
-  const handleAddLink = () => {
+  const handleAddLink = async () => {
     if (!newItemUrl.trim()) return;
 
-    const newItem: MoodboardItem = {
-      id: Date.now().toString(),
+    const newItem: Omit<MoodboardItem, 'id'> = {
       type: 'link',
       url: newItemUrl,
       title: newItemTitle || newItemUrl,
     };
 
-    saveItems([...items, newItem]);
-    setNewItemUrl('');
-    setNewItemTitle('');
-    setShowAddForm(false);
+    const id = await persistItem(newItem);
+    if (id) {
+      setNewItemUrl('');
+      setNewItemTitle('');
+      setShowAddForm(false);
+    }
   };
 
   const handleLinkPinterest = async () => {
     if (!pinterestBoardUrl.trim()) return;
 
-    // Validate URL
     const parsed = parseBoardUrl(pinterestBoardUrl);
     if (!parsed) {
       alert('Please enter a valid Pinterest board URL');
@@ -89,13 +128,10 @@ export const MoodboardPage: React.FC = () => {
     setLoadingBoard(true);
 
     try {
-      // Fetch preview images from the board
       const previewImages = await fetchBoardPreviews(pinterestBoardUrl, 6);
-      
-      const boardName = parsed.boardName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      const boardName = parsed.boardName.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 
-      const newItem: MoodboardItem = {
-        id: Date.now().toString(),
+      const newItem: Omit<MoodboardItem, 'id'> = {
         type: 'pinterest',
         url: pinterestBoardUrl,
         title: boardName || 'Pinterest Board',
@@ -103,28 +139,45 @@ export const MoodboardPage: React.FC = () => {
         previewImages: previewImages.length > 0 ? previewImages : undefined,
       };
 
-      saveItems([...items, newItem]);
-      setPinterestBoardUrl('');
+      const id = await persistItem(newItem);
+      if (id) setPinterestBoardUrl('');
     } catch (error) {
       console.error('Error linking Pinterest board:', error);
-      // Still save the board link even if previews fail
-      const newItem: MoodboardItem = {
-        id: Date.now().toString(),
+      const newItem: Omit<MoodboardItem, 'id'> = {
         type: 'pinterest',
         url: pinterestBoardUrl,
         title: 'Pinterest Board',
         description: `Linked Pinterest board: ${pinterestBoardUrl}`,
       };
-      saveItems([...items, newItem]);
-      setPinterestBoardUrl('');
+      const id = await persistItem(newItem);
+      if (id) setPinterestBoardUrl('');
     } finally {
       setLoadingBoard(false);
     }
   };
 
   const handleRemoveItem = (id: string) => {
-    saveItems(items.filter((item) => item.id !== id));
+    removeItem(id);
   };
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: theme.spacing.xl,
+          backgroundColor: theme.colors.background,
+          minHeight: 'calc(100vh - 180px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <p style={{ color: theme.colors.text.secondary }}>Loading moodboard…</p>
+      </div>
+    );
+  }
 
   return (
     <div

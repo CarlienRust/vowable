@@ -10,8 +10,6 @@ import { theme } from '../styles/theme';
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const wedding = useWeddingPlanStore((state) => state.wedding);
-  const checklistItems = useWeddingPlanStore((state) => state.checklistItems);
-  const savedItems = useWeddingPlanStore((state) => state.savedItems);
   const loadFromSupabase = useWeddingPlanStore((state) => state.loadFromSupabase);
   const userId = useWeddingPlanStore((state) => state.userId);
 
@@ -56,9 +54,6 @@ export const DashboardPage: React.FC = () => {
     );
   }
 
-  const completedTasks = checklistItems.filter((item) => item.completed).length;
-  const totalTasks = checklistItems.length;
-
   return (
     <div
       style={{
@@ -76,130 +71,48 @@ export const DashboardPage: React.FC = () => {
           color: theme.colors.text.primary,
         }}
       >
-        Your Wedding Plan
+        Wedding Profile
       </h1>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: theme.spacing.lg,
-          marginBottom: theme.spacing.xl,
-        }}
-      >
-        <Card>
-          <h2
-            style={{
-              fontSize: theme.typography.fontSize.xl,
-              fontWeight: theme.typography.fontWeight.semibold,
-              marginBottom: theme.spacing.md,
-            }}
-          >
-            Wedding Details
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.sm }}>
-            {wedding.weddingDate && (
-              <p>
-                <strong>Date:</strong> {formatDate(wedding.weddingDate)}
-              </p>
-            )}
-            {wedding.guestCountRange && (
-              <p>
-                <strong>Guests:</strong> {wedding.guestCountRange}
-              </p>
-            )}
+      <Card style={{ maxWidth: '500px' }}>
+        <h2
+          style={{
+            fontSize: theme.typography.fontSize.xl,
+            fontWeight: theme.typography.fontWeight.semibold,
+            marginBottom: theme.spacing.md,
+          }}
+        >
+          Wedding Details
+        </h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.sm }}>
+          {wedding.weddingDate && (
             <p>
-              <strong>Location:</strong> {wedding.location}
+              <strong>Date:</strong> {formatDate(wedding.weddingDate)}
             </p>
-            {wedding.themePrimary && (
-              <p>
-                <strong>Theme:</strong> {wedding.themePrimary}
-              </p>
-            )}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/onboarding')}
-            style={{ marginTop: theme.spacing.md }}
-          >
-            Edit Details
-          </Button>
-        </Card>
-
-        <Card>
-          <h2
-            style={{
-              fontSize: theme.typography.fontSize.xl,
-              fontWeight: theme.typography.fontWeight.semibold,
-              marginBottom: theme.spacing.md,
-            }}
-          >
-            Checklist Progress
-          </h2>
-          <p
-            style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.accent.primary,
-              marginBottom: theme.spacing.sm,
-            }}
-          >
-            {completedTasks} / {totalTasks}
+          )}
+          {wedding.guestCountRange && (
+            <p>
+              <strong>Guests:</strong> {wedding.guestCountRange}
+            </p>
+          )}
+          <p>
+            <strong>Location:</strong> {wedding.location}
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/checklist')}
-            style={{ marginTop: theme.spacing.md }}
-          >
-            View Checklist
-          </Button>
-        </Card>
-
-        <Card>
-          <h2
-            style={{
-              fontSize: theme.typography.fontSize.xl,
-              fontWeight: theme.typography.fontWeight.semibold,
-              marginBottom: theme.spacing.md,
-            }}
-          >
-            Saved Items
-          </h2>
-          <p
-            style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.accent.primary,
-              marginBottom: theme.spacing.sm,
-            }}
-          >
-            {savedItems.length}
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/saved')}
-            style={{ marginTop: theme.spacing.md }}
-          >
-            View Saved
-          </Button>
-        </Card>
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          gap: theme.spacing.md,
-          flexWrap: 'wrap',
-        }}
-      >
-        <Button onClick={() => navigate('/explore')}>Explore Venues & Vendors</Button>
-        <Button variant="outline" onClick={() => navigate('/budget')}>
-          View Budget
+          {wedding.themePrimary && (
+            <p>
+              <strong>Theme:</strong> {wedding.themePrimary}
+            </p>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/onboarding')}
+          style={{ marginTop: theme.spacing.md }}
+        >
+          Edit Details
         </Button>
-      </div>
+      </Card>
     </div>
   );
 };

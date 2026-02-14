@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ListingType } from '../../domain/types';
+import React, { useState, useEffect, useRef } from 'react';
+import { ListingType, WeddingPlan } from '../../domain/types';
 import { Select } from '../ui/Select';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -18,16 +18,28 @@ interface FormVendorPreferences {
   themeKeywords?: string[];
 }
 
+function defaultGuestCountFromRange(range: string | null): number | undefined {
+  if (!range) return undefined;
+  if (range === '0-50') return 25;
+  if (range === '50-100') return 75;
+  if (range === '100-150') return 125;
+  if (range === '150+') return 175;
+  return undefined;
+}
+
 interface VendorIntakeFormProps {
   onSubmit: (preferences: FormVendorPreferences) => void;
   onCancel?: () => void;
   initialType?: ListingType;
+  /** Default form values from Wedding Profile; user can change without updating profile */
+  wedding?: WeddingPlan | null;
 }
 
 export const VendorIntakeForm: React.FC<VendorIntakeFormProps> = ({
   onSubmit,
   onCancel,
   initialType,
+  wedding,
 }) => {
   const [type, setType] = useState<ListingType>(initialType || 'venue');
   const [indoorOutdoor, setIndoorOutdoor] = useState<'indoor' | 'outdoor' | 'either'>('either');
@@ -36,6 +48,23 @@ export const VendorIntakeForm: React.FC<VendorIntakeFormProps> = ({
   const [budgetMax, setBudgetMax] = useState('');
   const [maxDistanceKm, setMaxDistanceKm] = useState('');
   const [priority, setPriority] = useState<'scenery' | 'food' | 'party' | 'convenience' | 'budget'>('convenience');
+
+  const hasInitializedFromWedding = useRef(false);
+  // Pre-fill from Wedding Profile once when form is shown (user can change without updating profile)
+  useEffect(() => {
+    if (!wedding || hasInitializedFromWedding.current) return;
+    hasInitializedFromWedding.current = true;
+    if (wedding.guestCountRange) {
+      const n = defaultGuestCountFromRange(wedding.guestCountRange);
+      if (n !== undefined) setGuestCount(String(n));
+    }
+    if (wedding.totalBudget != null && wedding.totalBudget > 0) {
+      const total = wedding.totalBudget;
+      setBudgetMin(String(Math.round(total * 0.25)));
+      setBudgetMax(String(Math.round(total * 0.5)));
+    }
+    if (wedding.radiusKm != null) setMaxDistanceKm(String(wedding.radiusKm));
+  }, [wedding]);
 
   const typeOptions = [
     { value: 'venue', label: 'Venues' },
@@ -79,11 +108,20 @@ export const VendorIntakeForm: React.FC<VendorIntakeFormProps> = ({
         style={{
           fontSize: theme.typography.fontSize.xl,
           fontWeight: theme.typography.fontWeight.semibold,
-          marginBottom: theme.spacing.md,
+          marginBottom: theme.spacing.xs,
         }}
       >
         Tell me what you're looking for
       </h2>
+      <p
+        style={{
+          fontSize: theme.typography.fontSize.sm,
+          color: theme.colors.text.secondary,
+          marginBottom: theme.spacing.md,
+        }}
+      >
+        Defaults are from your Wedding Profile. You can change them here to see different results without updating your profile.
+      </p>
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.md }}>
           <Select

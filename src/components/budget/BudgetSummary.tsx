@@ -9,11 +9,21 @@ import { theme } from '../../styles/theme';
 interface BudgetSummaryProps {
   wedding: WeddingPlan;
   savedItems: SavedItem[];
+  manualCategorySpend?: Record<string, number>;
+  budgetExpenses?: { amount: number }[];
 }
 
-export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ wedding, savedItems }) => {
+export const BudgetSummary: React.FC<BudgetSummaryProps> = ({
+  wedding,
+  savedItems,
+  manualCategorySpend = {},
+  budgetExpenses = [],
+}) => {
   const totalBudget = wedding.totalBudget || 0;
-  const committed = calculateCommittedSpend(savedItems);
+  const fromSaved = calculateCommittedSpend(savedItems);
+  const fromManualLegacy = Object.values(manualCategorySpend).reduce((s, n) => s + n, 0);
+  const fromExpenses = budgetExpenses.reduce((s, e) => s + e.amount, 0);
+  const committed = fromSaved + fromManualLegacy + fromExpenses;
   const remaining = totalBudget - committed;
   const percentageUsed = totalBudget > 0 ? (committed / totalBudget) * 100 : 0;
 

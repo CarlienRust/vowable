@@ -7,6 +7,12 @@ import { theme } from '../styles/theme';
 export const BudgetPage: React.FC = () => {
   const wedding = useWeddingPlanStore((state) => state.wedding);
   const savedItems = useWeddingPlanStore((state) => state.savedItems);
+  const manualCategorySpend = useWeddingPlanStore((state) => state.manualCategorySpend);
+  const budgetExpenses = useWeddingPlanStore((state) => state.budgetExpenses);
+  const addBudgetExpense = useWeddingPlanStore((state) => state.addBudgetExpense);
+  const removeBudgetExpense = useWeddingPlanStore((state) => state.removeBudgetExpense);
+  const budgetAllocationOverrides = useWeddingPlanStore((state) => state.budgetAllocationOverrides);
+  const updateAllocationOverrides = useWeddingPlanStore((state) => state.updateAllocationOverrides);
 
   if (!wedding) {
     return (
@@ -49,8 +55,22 @@ export const BudgetPage: React.FC = () => {
           gap: theme.spacing.lg,
         }}
       >
-        <BudgetSummary wedding={wedding} savedItems={savedItems} />
-        <AllocationBreakdown wedding={wedding} savedItems={savedItems} />
+        <BudgetSummary
+          wedding={wedding}
+          savedItems={savedItems}
+          manualCategorySpend={manualCategorySpend}
+          budgetExpenses={budgetExpenses}
+        />
+        <AllocationBreakdown
+          wedding={wedding}
+          savedItems={savedItems}
+          manualCategorySpend={manualCategorySpend}
+          budgetExpenses={budgetExpenses}
+          budgetAllocationOverrides={budgetAllocationOverrides}
+          onAddExpense={addBudgetExpense}
+          onRemoveExpense={removeBudgetExpense}
+          onUpdateAllocationOverrides={updateAllocationOverrides}
+        />
       </div>
     </div>
   );

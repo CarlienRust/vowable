@@ -1,6 +1,31 @@
 import { WeddingPlan, SavedItem, BudgetAllocation } from './types';
 
 /**
+ * Merge suggested allocations with user overrides and normalize to 100%.
+ * Used for Budget Breakdown when user adjusts % per category.
+ */
+export function getEffectiveAllocations(
+  suggested: BudgetAllocation[],
+  overrides: Record<string, number>,
+  totalBudget: number
+): BudgetAllocation[] {
+  const base = suggested.map((a) => ({
+    ...a,
+    suggestedPercent: overrides[a.category] ?? a.suggestedPercent,
+  }));
+  const total = base.reduce((s, a) => s + a.suggestedPercent, 0);
+  if (total <= 0) return suggested;
+  return base.map((a) => {
+    const pct = (a.suggestedPercent / total) * 100;
+    return {
+      ...a,
+      suggestedPercent: pct,
+      suggestedAmount: (totalBudget * pct) / 100,
+    };
+  });
+}
+
+/**
  * Calculate suggested budget allocation percentages
  */
 export function getSuggestedAllocations(wedding: WeddingPlan): BudgetAllocation[] {
@@ -68,3 +93,15 @@ export function listingTypeToCategory(type: string): string {
   };
   return mapping[type] || 'Other';
 }
+
+/** Category options for Add expense (same order as suggested allocations) */
+export const BUDGET_CATEGORIES = [
+  'Venue',
+  'Food & Beverage',
+  'Photography',
+  'Décor & Flowers',
+  'Attire',
+  'Music/Entertainment',
+  'Accommodation',
+  'Other',
+] as const;
