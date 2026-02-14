@@ -1,6 +1,9 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { Card } from '../components/ui/Card';
 import { Footer } from '../components/ui/Footer';
 import { theme } from '../styles/theme';
+import newspaperBg from '../assets/backgrounds/newspaper.png';
 
 export const PrivacyPolicyPage: React.FC = () => {
   return (
@@ -10,6 +13,10 @@ export const PrivacyPolicyPage: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: theme.colors.background,
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(${newspaperBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <div
@@ -18,17 +25,23 @@ export const PrivacyPolicyPage: React.FC = () => {
           padding: theme.spacing.xl,
         }}
       >
-        <div
-          style={{
-            maxWidth: '900px',
-            margin: '0 auto',
-            backgroundColor: theme.colors.surface,
-            padding: theme.spacing.xxl,
-            borderRadius: theme.borderRadius.lg,
-            boxShadow: theme.shadows.md,
-          }}
-        >
-        <h1
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <Card style={{ padding: theme.spacing.xxl }}>
+            <div style={{ marginBottom: theme.spacing.lg }}>
+              <Link
+                to="/"
+                style={{
+                  color: theme.colors.accent.primary,
+                  textDecoration: 'none',
+                  fontSize: theme.typography.fontSize.sm,
+                  display: 'inline-block',
+                  marginBottom: theme.spacing.md,
+                }}
+              >
+                ← Back to Home
+              </Link>
+            </div>
+            <h1
           style={{
             fontSize: theme.typography.fontSize['3xl'],
             fontWeight: theme.typography.fontWeight.bold,
@@ -421,7 +434,8 @@ export const PrivacyPolicyPage: React.FC = () => {
             The "Last updated" date at the top will always reflect the latest version.
           </p>
         </div>
-      </div>
+          </Card>
+        </div>
       </div>
       <Footer />
     </div>
