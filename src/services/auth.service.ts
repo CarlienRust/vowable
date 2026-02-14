@@ -60,6 +60,22 @@ export const authService = {
     return data;
   },
 
+  async updateProfile(userId: string, updates: { full_name?: string | null }): Promise<boolean> {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        ...(updates.full_name !== undefined && { full_name: updates.full_name }),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('Error updating profile:', error);
+      return false;
+    }
+    return true;
+  },
+
   onAuthStateChange(callback: (user: User | null) => void) {
     return supabase.auth.onAuthStateChange((_event, session) => {
       callback(session?.user ?? null);

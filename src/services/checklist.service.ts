@@ -47,15 +47,11 @@ export const checklistService = {
     }));
   },
 
-  async saveChecklistItems(userId: string, weddingId: string, items: ChecklistItem[]): Promise<boolean> {
-    // Delete existing items for this wedding
-    await supabase
-      .from('checklist_items')
-      .delete()
-      .eq('user_id', userId)
-      .eq('wedding_id', weddingId);
-
-    // Insert new items
+  async saveChecklistItems(
+    userId: string,
+    weddingId: string,
+    items: ChecklistItem[]
+  ): Promise<ChecklistItem[] | null> {
     const rows = items.map((item) => ({
       user_id: userId,
       wedding_id: weddingId,
@@ -71,11 +67,45 @@ export const checklistService = {
       is_optional: item.is_optional || false,
     }));
 
-    const { error } = await supabase
+    const { data: upserted, error: upsertError } = await supabase
       .from('checklist_items')
-      .insert(rows);
+      .upsert(rows, {
+        onConflict: 'user_id,wedding_id,task_key',
+        ignoreDuplicates: false,
+      })
+      .select('id, task_key, title, due_date, completed, priority_score, notes, reminder_enabled, category, dependencies, is_optional');
 
-    return !error;
+    if (upsertError) {
+      console.error('Checklist upsert error:', upsertError);
+      return null;
+    }
+
+    // Remove items that are no longer in the list (fetch then delete by id to avoid not.in quirks)
+    const taskKeySet = new Set(items.map((i) => i.task_key));
+    const { data: existing } = await supabase
+      .from('checklist_items')
+      .select('id, task_key')
+      .eq('user_id', userId)
+      .eq('wedding_id', weddingId);
+    const idsToDelete = (existing ?? []).filter((r) => !taskKeySet.has(r.task_key)).map((r) => r.id);
+    if (idsToDelete.length > 0) {
+      await supabase.from('checklist_items').delete().in('id', idsToDelete);
+    }
+
+    const result: ChecklistItem[] = (upserted ?? []).map((row) => ({
+      id: row.id,
+      task_key: row.task_key,
+      title: row.title,
+      due_date: row.due_date,
+      completed: row.completed,
+      priority_score: row.priority_score,
+      notes: row.notes ?? undefined,
+      reminder_enabled: row.reminder_enabled,
+      category: row.category ?? undefined,
+      dependencies: row.dependencies ?? [],
+      is_optional: row.is_optional,
+    }));
+    return result;
   },
 
   async toggleChecklistItem(itemId: string, completed: boolean): Promise<boolean> {

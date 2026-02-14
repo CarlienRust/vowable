@@ -4,7 +4,7 @@
 
 - **Frontend:** React + Vite, Zustand (single store), React Router.
 - **Backend:** Supabase (Postgres + Auth). No separate API server; client talks to Supabase via JS client with RLS.
-- **Data flow:** App boot → auth check → `loadFromSupabase(userId)` loads wedding, saved items, checklist (and local budget/moodboard where applicable). Listings are fetched per page (Explore, Chatbot).
+- **Data flow:** App boot → auth check → `loadFromSupabase(userId)` loads wedding, saved items, checklist, and budget from Supabase (moodboard too). Listings are fetched per page (Explore) or paginated (Chatbot).
 
 ---
 
@@ -13,12 +13,13 @@
 | Table | Purpose | Key indexes |
 |-------|--------|-------------|
 | `profiles` | User profile (email, full_name, is_admin) | PK on id |
-| `weddings` | One per user “current” wedding; supports multiple later | user_id, (user_id, is_current) partial |
-| `listings` | Vendors (venues, caterers, etc.); shared, read-mostly | status partial, type |
+| `weddings` | One per user “current” wedding; allocation_overrides, manual_category_spend (JSONB) | user_id, (user_id, is_current) partial |
+| `listings` | Vendors (venues, caterers, etc.); shared, read-mostly | status partial, (status, type) |
 | `saved_items` | User’s shortlisted listings per wedding | user_id, wedding_id |
-| `checklist_items` | Tasks per wedding | (user_id, wedding_id) |
+| `checklist_items` | Tasks per wedding; UNIQUE(user_id, wedding_id, task_key) | (user_id, wedding_id) |
+| `budget_entries` | Budget expense rows per wedding | (user_id, wedding_id) |
 | `moodboard_items` | User moodboard (images, links, Pinterest) | user_id |
-| `enquiries` | Enquiries to vendors | user_id, listing_id |
+| `enquiries` | Enquiries to vendors | user_id, listing_id, (listing_id, status) |
 
 All tables use RLS with user-scoped (or admin) policies. No cross-user data leakage.
 
@@ -52,44 +53,43 @@ All tables use RLS with user-scoped (or admin) policies. No cross-user data leak
 
 ## Recommendations going forward
 
-### High impact
+### High impact (done)
 
 - **Listings pagination / limit**  
-  - `getAllListings()` currently loads all published listings. When the catalogue grows (e.g. 1k+ listings), add either a limit (e.g. 200) + “Load more” or proper pagination (offset/limit or keyset) and use the (status, type) index for filters.
+  - Implemented: `getListings({ offset, limit, type })` with default limit 200; Explore uses it with “Load more”. Chatbot uses `getAllListings()` which pages under the hood. Composite index `(status, type)` is used for filtered requests.
 
 - **Budget data persistence**  
-  - Budget expenses, manual category spend, and allocation overrides live in **localStorage** only. They don’t sync across devices and are lost if the user clears storage. For consistency and scale, move these into Supabase (e.g. a `budget_entries` table and an `allocation_overrides` JSONB column on `weddings` or a small `user_budget_settings` table).
+  - Implemented: `budget_entries` table and `weddings.allocation_overrides` / `weddings.manual_category_spend` (JSONB). Migration `004_budget_persistence.sql`; `budget.service.ts` and store use Supabase instead of localStorage.
 
-### Medium impact
+### Medium impact (done)
 
 - **Checklist save strategy**  
-  - `saveChecklistItems` currently deletes all items for the wedding then re-inserts. For 100–200 items this is acceptable. If checklist size or update frequency grows, consider upserting by `task_key` and only inserting/updating/deleting changed rows.
+  - Implemented: `saveChecklistItems` upserts by `(user_id, wedding_id, task_key)`, then deletes rows whose `task_key` is no longer in the list. Returns persisted items with DB ids so the store stays in sync.
 
 - **Profiles sync**  
-  - Profile (e.g. email, full_name) is created on signup via trigger. If you need profile edits from the app, ensure updates go through Supabase so all clients see the same data.
+  - Implemented: `auth.service.updateProfile(userId, { full_name })` so profile edits go through Supabase. Use from any future “Account details” or profile-edit UI.
 
 - **Enquiries**  
-  - If you add a “vendor dashboard” (enquiries per listing), add an index on `enquiries(listing_id, status)` for listing-centric queries.
+  - Index `enquiries(listing_id, status)` added in migration 003 for listing-centric queries (e.g. vendor dashboard).
 
-### Optional
+### Optional (implemented where noted)
 
 - **Read replicas**  
-  - Supabase can add read replicas; use for heavy read paths (e.g. listing discovery) if needed later.
+  - Supabase can add read replicas; use for heavy read paths (e.g. listing discovery) if needed later. No code change required—configure in Supabase project settings.
 
 - **Caching**  
-  - Listings are fetched on Explore and Chatbot. For 1000+ concurrent users, consider short-lived client-side cache (e.g. 1–5 min) or a thin edge cache for the published-listings query.
+  - Implemented: short-lived client-side cache (2 min TTL) for the first page of published listings in `listings.service.ts` (`getListingsCached`). Explore uses it for the initial load; “Load more” fetches uncached.
 
 - **Rate limiting**  
-  - Supabase has built-in rate limiting. For sensitive or expensive operations, consider additional app-side or Supabase Edge rate limits.
+  - Supabase has built-in rate limiting. Implemented: app-side throttle for `loadFromSupabase` (2 s) to avoid rapid repeated full loads (e.g. on auth flicker). For stricter limits on sensitive or expensive operations, consider Supabase Edge or API-level rate limits.
 
 ---
 
 ## Data that still lives only in the client
 
-- **Budget:** `budgetExpenses`, `manualCategorySpend`, `budgetAllocationOverrides` (localStorage keyed by weddingId).  
-  → Prefer moving to Supabase for durability and multi-device.
+- **Budget:** Now in Supabase (`budget_entries`, `weddings.allocation_overrides`, `weddings.manual_category_spend`).
 
-- **Chatbot:** Pinterest themes from moodboard are still read from localStorage in one code path; with moodboard in Supabase, that path could be updated to use moodboard API or pass moodboard themes from the app state.
+- **Chatbot:** Pinterest themes from moodboard may still be read from localStorage in one code path; with moodboard in Supabase, that path could be updated to use moodboard API or pass moodboard themes from the app state.
 
 ---
 

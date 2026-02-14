@@ -3,68 +3,12 @@ import { WeddingPlan, SavedItem, ChecklistItem, Listing, BudgetExpense } from '.
 import { weddingService } from '../services/wedding.service';
 import { savedItemsService } from '../services/savedItems.service';
 import { checklistService } from '../services/checklist.service';
+import { budgetService } from '../services/budget.service';
 import { generateChecklist } from '../domain/checklist';
 
-const BUDGET_MANUAL_SPEND_KEY = 'budget_manual_spend';
-const BUDGET_EXPENSES_KEY = 'budget_expenses';
-const BUDGET_ALLOCATION_OVERRIDES_KEY = 'budget_allocation_overrides';
-
-function loadManualCategorySpend(weddingId: string | null): Record<string, number> {
-  if (!weddingId) return {};
-  try {
-    const raw = localStorage.getItem(`${BUDGET_MANUAL_SPEND_KEY}_${weddingId}`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object') return parsed;
-    }
-  } catch (_) {}
-  return {};
-}
-
-function saveManualCategorySpend(weddingId: string | null, data: Record<string, number>) {
-  if (!weddingId) return;
-  try {
-    localStorage.setItem(`${BUDGET_MANUAL_SPEND_KEY}_${weddingId}`, JSON.stringify(data));
-  } catch (_) {}
-}
-
-function loadBudgetExpenses(weddingId: string | null): BudgetExpense[] {
-  if (!weddingId) return [];
-  try {
-    const raw = localStorage.getItem(`${BUDGET_EXPENSES_KEY}_${weddingId}`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-    }
-  } catch (_) {}
-  return [];
-}
-
-function saveBudgetExpenses(weddingId: string | null, data: BudgetExpense[]) {
-  if (!weddingId) return;
-  try {
-    localStorage.setItem(`${BUDGET_EXPENSES_KEY}_${weddingId}`, JSON.stringify(data));
-  } catch (_) {}
-}
-
-function loadBudgetAllocationOverrides(weddingId: string | null): Record<string, number> {
-  if (!weddingId) return {};
-  try {
-    const raw = localStorage.getItem(`${BUDGET_ALLOCATION_OVERRIDES_KEY}_${weddingId}`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object') return parsed;
-    }
-  } catch (_) {}
-  return {};
-}
-
-function saveBudgetAllocationOverrides(weddingId: string | null, data: Record<string, number>) {
-  if (!weddingId) return;
-  try {
-    localStorage.setItem(`${BUDGET_ALLOCATION_OVERRIDES_KEY}_${weddingId}`, JSON.stringify(data));
-  } catch (_) {}
-}
+const LOAD_THROTTLE_MS = 2000;
+let lastLoadAt = 0;
+let lastLoadUserId: string | null = null;
 
 interface WeddingPlanState {
   userId: string | null;
@@ -91,10 +35,10 @@ interface WeddingPlanState {
   initializeChecklist: () => Promise<void>;
   loadFromSupabase: (userId: string) => Promise<void>;
   clearAll: () => void;
-  addManualCategorySpend: (category: string, amount: number) => void;
-  addBudgetExpense: (expense: Omit<BudgetExpense, 'id'>) => void;
-  removeBudgetExpense: (id: string) => void;
-  updateAllocationOverrides: (updates: Record<string, number>) => void;
+  addManualCategorySpend: (category: string, amount: number) => Promise<void>;
+  addBudgetExpense: (expense: Omit<BudgetExpense, 'id'>) => Promise<void>;
+  removeBudgetExpense: (id: string) => Promise<void>;
+  updateAllocationOverrides: (updates: Record<string, number>) => Promise<void>;
 }
 
 export const useWeddingPlanStore = create<WeddingPlanState>((set, get) => ({
@@ -121,19 +65,27 @@ export const useWeddingPlanStore = create<WeddingPlanState>((set, get) => ({
     const currentWeddingId = get().weddingId;
     if (currentWeddingId) {
       await weddingService.updateWedding(currentWeddingId, wedding);
+      const [entries, settings] = await Promise.all([
+        budgetService.getBudgetEntries(userId, currentWeddingId),
+        budgetService.getBudgetSettings(userId, currentWeddingId),
+      ]);
       set({
-        manualCategorySpend: loadManualCategorySpend(currentWeddingId),
-        budgetExpenses: loadBudgetExpenses(currentWeddingId),
-        budgetAllocationOverrides: loadBudgetAllocationOverrides(currentWeddingId),
+        manualCategorySpend: settings?.manualCategorySpend ?? {},
+        budgetExpenses: entries,
+        budgetAllocationOverrides: settings?.allocationOverrides ?? {},
       });
     } else {
       const weddingId = await weddingService.createWedding(userId, wedding);
       if (weddingId) {
+        set({ weddingId });
+        const [entries, settings] = await Promise.all([
+          budgetService.getBudgetEntries(userId, weddingId),
+          budgetService.getBudgetSettings(userId, weddingId),
+        ]);
         set({
-          weddingId,
-          manualCategorySpend: loadManualCategorySpend(weddingId),
-          budgetExpenses: loadBudgetExpenses(weddingId),
-          budgetAllocationOverrides: loadBudgetAllocationOverrides(weddingId),
+          manualCategorySpend: settings?.manualCategorySpend ?? {},
+          budgetExpenses: entries,
+          budgetAllocationOverrides: settings?.allocationOverrides ?? {},
         });
       }
     }
@@ -193,7 +145,8 @@ export const useWeddingPlanStore = create<WeddingPlanState>((set, get) => ({
     if (!userId || !weddingId) return;
 
     set({ checklistItems: items });
-    await checklistService.saveChecklistItems(userId, weddingId, items);
+    const saved = await checklistService.saveChecklistItems(userId, weddingId, items);
+    if (saved) set({ checklistItems: saved });
   },
 
   toggleChecklistItem: async (id) => {
@@ -249,11 +202,18 @@ export const useWeddingPlanStore = create<WeddingPlanState>((set, get) => ({
       return newItem;
     });
 
-    set({ checklistItems: mergedItems });
-    await checklistService.saveChecklistItems(userId, weddingId, mergedItems);
+    const saved = await checklistService.saveChecklistItems(userId, weddingId, mergedItems);
+    set({ checklistItems: saved ?? mergedItems });
   },
 
   loadFromSupabase: async (userId) => {
+    const now = Date.now();
+    if (now - lastLoadAt < LOAD_THROTTLE_MS && lastLoadUserId === userId) {
+      return;
+    }
+    lastLoadAt = now;
+    lastLoadUserId = userId;
+
     set({ userId });
 
     // 1. Load wedding first (needed for weddingId and checklist)
@@ -263,54 +223,68 @@ export const useWeddingPlanStore = create<WeddingPlanState>((set, get) => ({
       set({ wedding: weddingData.plan, weddingId });
     }
 
-    // 2. Load saved items and checklist in parallel (reduces initial load time at scale)
-    const [savedItems, checklistItems] = await Promise.all([
+    // 2. Load saved items, checklist, and budget in parallel
+    const [savedItems, checklistItems, budgetData] = await Promise.all([
       savedItemsService.getSavedItems(userId),
       weddingId
         ? checklistService.getChecklistItems(userId, weddingId)
         : Promise.resolve([]),
+      weddingId
+        ? Promise.all([
+            budgetService.getBudgetEntries(userId, weddingId),
+            budgetService.getBudgetSettings(userId, weddingId),
+          ]).then(([entries, settings]) => ({
+            entries,
+            manualCategorySpend: settings?.manualCategorySpend ?? {},
+            budgetAllocationOverrides: settings?.allocationOverrides ?? {},
+          }))
+        : Promise.resolve({
+            entries: [] as BudgetExpense[],
+            manualCategorySpend: {} as Record<string, number>,
+            budgetAllocationOverrides: {} as Record<string, number>,
+          }),
     ]);
 
     set({
       savedItems,
       checklistItems,
-      manualCategorySpend: loadManualCategorySpend(weddingId),
-      budgetExpenses: loadBudgetExpenses(weddingId),
-      budgetAllocationOverrides: loadBudgetAllocationOverrides(weddingId),
+      manualCategorySpend: budgetData.manualCategorySpend,
+      budgetExpenses: budgetData.entries,
+      budgetAllocationOverrides: budgetData.budgetAllocationOverrides,
     });
   },
 
-  addManualCategorySpend: (category, amount) => {
-    const { weddingId, manualCategorySpend } = get();
+  addManualCategorySpend: async (category, amount) => {
+    const { userId, weddingId, manualCategorySpend } = get();
+    if (!userId || !weddingId) return;
     const current = manualCategorySpend[category] || 0;
     const next = { ...manualCategorySpend, [category]: current + amount };
     set({ manualCategorySpend: next });
-    saveManualCategorySpend(weddingId, next);
+    await budgetService.updateBudgetSettings(userId, weddingId, { manualCategorySpend: next });
   },
 
-  addBudgetExpense: (expense) => {
-    const { weddingId, budgetExpenses } = get();
-    const entry: BudgetExpense = {
-      ...expense,
-      id: `exp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-    };
-    const next = [...budgetExpenses, entry];
-    set({ budgetExpenses: next });
-    saveBudgetExpenses(weddingId, next);
+  addBudgetExpense: async (expense) => {
+    const { userId, weddingId, budgetExpenses } = get();
+    if (!userId || !weddingId) return;
+    const id = await budgetService.addBudgetEntry(userId, weddingId, expense);
+    if (id) {
+      set({ budgetExpenses: [...budgetExpenses, { ...expense, id }] });
+    }
   },
 
-  removeBudgetExpense: (id) => {
-    const { weddingId, budgetExpenses } = get();
-    const next = budgetExpenses.filter((e) => e.id !== id);
-    set({ budgetExpenses: next });
-    saveBudgetExpenses(weddingId, next);
+  removeBudgetExpense: async (id) => {
+    const success = await budgetService.removeBudgetEntry(id);
+    if (success) {
+      set({ budgetExpenses: get().budgetExpenses.filter((e) => e.id !== id) });
+    }
   },
 
-  updateAllocationOverrides: (updates) => {
-    const { weddingId, budgetAllocationOverrides } = get();
+  updateAllocationOverrides: async (updates) => {
+    const { userId, weddingId, budgetAllocationOverrides } = get();
+    if (!userId || !weddingId) return;
     const next = { ...budgetAllocationOverrides, ...updates };
     set({ budgetAllocationOverrides: next });
-    saveBudgetAllocationOverrides(weddingId, next);
+    await budgetService.updateBudgetSettings(userId, weddingId, { allocationOverrides: next });
   },
 
   clearAll: () => {

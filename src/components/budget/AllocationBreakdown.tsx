@@ -129,7 +129,7 @@ interface AddExpenseFormProps {
 
 const AddExpenseForm: React.FC<AddExpenseFormProps> = ({ categoryOptions, onAdd }) => {
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState(BUDGET_CATEGORIES[0]);
+  const [category, setCategory] = useState<string>(BUDGET_CATEGORIES[0]);
   const [description, setDescription] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {

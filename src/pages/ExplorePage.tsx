@@ -24,26 +24,50 @@ export const ExplorePage: React.FC = () => {
   const [selectedType, setSelectedType] = useState<ListingType | 'all'>('all');
   const [selectedPriceBand, setSelectedPriceBand] = useState<PriceBand | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [listings, setListings] = useState<any[]>([]);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [listingsHasMore, setListingsHasMore] = useState(false);
+  const [listingsLoading, setListingsLoading] = useState(true);
   const [enquiryModalListing, setEnquiryModalListing] = useState<Listing | null>(null);
   const [enquiryStatuses, setEnquiryStatuses] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    const loadListings = async () => {
-      const data = await listingsService.getAllListings();
-      setListings(data);
+  const fetchListingsPage = async (offset: number, append: boolean) => {
+    const type = selectedType === 'all' ? undefined : selectedType;
+    const opts = {
+      offset,
+      limit: listingsService.LISTINGS_PAGE_SIZE,
+      type,
+    };
+    const { data, hasMore } =
+      offset === 0
+        ? await listingsService.getListingsCached(opts)
+        : await listingsService.getListings(opts);
+    setListings((prev) => (append ? [...prev, ...data] : data));
+    setListingsHasMore(hasMore);
+  };
 
-      // Load enquiry statuses
-      if (userId) {
-        const enquiries = await enquiriesService.getEnquiries(userId);
+  const handleLoadMore = () => {
+    fetchListingsPage(listings.length, true);
+  };
+
+  useEffect(() => {
+    const loadFirstPage = async () => {
+      setListingsLoading(true);
+      await fetchListingsPage(0, false);
+      setListingsLoading(false);
+    };
+    loadFirstPage();
+  }, [selectedType]);
+
+  useEffect(() => {
+    if (userId) {
+      enquiriesService.getEnquiries(userId).then((enquiries) => {
         const statusMap: Record<string, string> = {};
         enquiries.forEach((enq) => {
           statusMap[enq.listing_id] = enq.status;
         });
         setEnquiryStatuses(statusMap);
-      }
-    };
-    loadListings();
+      });
+    }
   }, [userId]);
 
   const filteredListings = useMemo(() => {
@@ -219,7 +243,7 @@ export const ExplorePage: React.FC = () => {
               color: theme.colors.text.secondary,
             }}
           >
-            Found {filteredListings.length} listings
+            {listingsLoading ? 'Loading…' : `Showing ${filteredListings.length} listings`}
           </p>
           {filteredListings.map(({ listing, distance }) => (
             <ListingCard
@@ -231,6 +255,13 @@ export const ExplorePage: React.FC = () => {
               enquiryStatus={enquiryStatuses[listing.id]}
             />
           ))}
+          {listingsHasMore && (
+            <div style={{ marginTop: theme.spacing.lg, textAlign: 'center' }}>
+              <Button variant="outline" onClick={handleLoadMore}>
+                Load more
+              </Button>
+            </div>
+          )}
           {enquiryModalListing && userId && (
             <EnquiryModal
               listing={enquiryModalListing}

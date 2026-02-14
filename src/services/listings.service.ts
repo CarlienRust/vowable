@@ -1,6 +1,24 @@
 import { supabase } from './supabaseClient';
 import { Listing, ListingType, PriceBand } from '../domain/types';
 
+/** Default page size for listing discovery (scale-friendly). */
+export const LISTINGS_PAGE_SIZE = 200;
+
+/** Short-lived cache for published listings (optional scaling). */
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+let listingsCache: { data: Listing[]; expiresAt: number } | null = null;
+
+export interface GetListingsOptions {
+  offset?: number;
+  limit?: number;
+  type?: ListingType;
+}
+
+export interface GetListingsResult {
+  data: Listing[];
+  hasMore: boolean;
+}
+
 export interface ListingRow {
   id: string;
   type: ListingType;
@@ -28,18 +46,72 @@ export interface ListingRow {
 }
 
 export const listingsService = {
-  async getAllListings(): Promise<Listing[]> {
-    const { data, error } = await supabase
+  /**
+   * Fetch one page of published listings (pagination/limit for scale).
+   */
+  async getListings(options: GetListingsOptions = {}): Promise<GetListingsResult> {
+    const { offset = 0, limit = LISTINGS_PAGE_SIZE, type } = options;
+    let query = supabase
       .from('listings')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('status', 'published')
-      .order('name');
+      .order('name')
+      .range(offset, offset + limit - 1);
 
-    if (error || !data) {
-      return [];
+    if (type) {
+      query = query.eq('type', type);
     }
 
-    return data.map((row) => this.mapRowToListing(row));
+    const { data, error, count } = await query;
+
+    if (error || !data) {
+      return { data: [], hasMore: false };
+    }
+
+    const listings = data.map((row) => this.mapRowToListing(row));
+    const hasMore = (count ?? 0) > offset + listings.length;
+    return { data: listings, hasMore };
+  },
+
+  /**
+   * Fetch all published listings (e.g. for Chatbot matching). Uses pagination under the hood.
+   */
+  async getAllListings(type?: ListingType): Promise<Listing[]> {
+    const all: Listing[] = [];
+    let offset = 0;
+    let hasMore = true;
+    while (hasMore) {
+      const { data, hasMore: more } = await this.getListings({
+        offset,
+        limit: LISTINGS_PAGE_SIZE,
+        type,
+      });
+      all.push(...data);
+      hasMore = more && data.length === LISTINGS_PAGE_SIZE;
+      offset += data.length;
+    }
+    return all;
+  },
+
+  /**
+   * Fetch published listings with optional short-lived cache (reduces load at scale).
+   */
+  async getListingsCached(options: GetListingsOptions = {}): Promise<GetListingsResult> {
+    // Cache only for "first page, no type filter" to keep cache key simple
+    const isFirstPage = (options.offset ?? 0) === 0 && !options.type;
+    if (isFirstPage && listingsCache && Date.now() < listingsCache.expiresAt) {
+      const cached = listingsCache.data;
+      const limit = options.limit ?? LISTINGS_PAGE_SIZE;
+      return {
+        data: cached.slice(0, limit),
+        hasMore: cached.length >= limit,
+      };
+    }
+    const result = await this.getListings(options);
+    if (isFirstPage && result.data.length > 0) {
+      listingsCache = { data: result.data, expiresAt: Date.now() + CACHE_TTL_MS };
+    }
+    return result;
   },
 
   async getListingById(id: string): Promise<Listing | null> {
