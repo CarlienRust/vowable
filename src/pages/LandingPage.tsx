@@ -4,6 +4,7 @@ import { Button } from '../components/ui/Button';
 import { Footer } from '../components/ui/Footer';
 import { theme } from '../styles/theme';
 import logo from '../assets/logo.png';
+import champagneBg from '../assets/backgrounds/champagne.png';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -15,6 +16,10 @@ export const LandingPage: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: theme.colors.background,
+        backgroundImage: `linear-gradient(rgba(250,250,250,0.86), rgba(250,250,250,0.86)), url(${champagneBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <div

@@ -4,6 +4,7 @@ import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { theme } from '../styles/theme';
+import shoeBg from '../assets/backgrounds/shoe.png';
 import { fetchBoardPreviews, parseBoardUrl } from '../services/pinterest.service';
 import { moodboardService, MoodboardItem } from '../services/moodboard.service';
 import { authService } from '../services/auth.service';
@@ -195,6 +196,10 @@ export const MoodboardPage: React.FC = () => {
           margin: '0 auto',
           padding: theme.spacing.xl,
           backgroundColor: theme.colors.background,
+          backgroundImage: `linear-gradient(rgba(250,250,250,0.9), rgba(250,250,250,0.9)), url(${shoeBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
           minHeight: 'calc(100vh - 180px)',
           display: 'flex',
           alignItems: 'center',
@@ -213,6 +218,10 @@ export const MoodboardPage: React.FC = () => {
         margin: '0 auto',
         padding: theme.spacing.xl,
         backgroundColor: theme.colors.background,
+        backgroundImage: `linear-gradient(rgba(250,250,250,0.9), rgba(250,250,250,0.9)), url(${shoeBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
         minHeight: 'calc(100vh - 180px)',
       }}
     >

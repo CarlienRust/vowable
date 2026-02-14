@@ -3,6 +3,7 @@ import { useWeddingPlanStore } from '../state/useWeddingPlanStore';
 import { BudgetSummary } from '../components/budget/BudgetSummary';
 import { AllocationBreakdown } from '../components/budget/AllocationBreakdown';
 import { theme } from '../styles/theme';
+import champagneBg from '../assets/backgrounds/champagne.png';
 
 export const BudgetPage: React.FC = () => {
   const wedding = useWeddingPlanStore((state) => state.wedding);
@@ -35,6 +36,10 @@ export const BudgetPage: React.FC = () => {
         margin: '0 auto',
         padding: theme.spacing.xl,
         backgroundColor: theme.colors.background,
+        backgroundImage: `linear-gradient(rgba(250,250,250,0.92), rgba(250,250,250,0.92)), url(${champagneBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <h1

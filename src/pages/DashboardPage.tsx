@@ -6,6 +6,7 @@ import { formatDate } from '../domain/format';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { theme } from '../styles/theme';
+import eraBg from '../assets/backgrounds/era.png';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -61,6 +62,10 @@ export const DashboardPage: React.FC = () => {
         margin: '0 auto',
         padding: theme.spacing.xl,
         backgroundColor: theme.colors.background,
+        backgroundImage: `linear-gradient(rgba(250,250,250,0.92), rgba(250,250,250,0.92)), url(${eraBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <h1

@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { Footer } from '../components/ui/Footer';
 import { theme } from '../styles/theme';
+import newspaperBg from '../assets/backgrounds/newspaper.png';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -56,6 +57,10 @@ export const LoginPage: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: theme.colors.background,
+        backgroundImage: `linear-gradient(rgba(250,250,250,0.9), rgba(250,250,250,0.9)), url(${newspaperBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <div

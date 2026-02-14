@@ -11,6 +11,7 @@ import { EnquiryModal } from '../components/listings/EnquiryModal';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { theme } from '../styles/theme';
+import streetBg from '../assets/backgrounds/street.png';
 
 type ViewMode = 'list' | 'map';
 
@@ -139,6 +140,10 @@ export const ExplorePage: React.FC = () => {
         margin: '0 auto',
         padding: theme.spacing.xl,
         backgroundColor: theme.colors.background,
+        backgroundImage: `linear-gradient(rgba(250,250,250,0.9), rgba(250,250,250,0.9)), url(${streetBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <div

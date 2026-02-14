@@ -12,6 +12,7 @@ import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 import { Tag } from '../components/ui/Tag';
 import { theme } from '../styles/theme';
+import eraBg from '../assets/backgrounds/era.png';
 
 export const SavedPage: React.FC = () => {
   const savedItems = useWeddingPlanStore((state) => state.savedItems);
@@ -83,6 +84,11 @@ export const SavedPage: React.FC = () => {
           maxWidth: '1000px',
           margin: '0 auto',
           padding: theme.spacing.xl,
+          backgroundColor: theme.colors.background,
+          backgroundImage: `linear-gradient(rgba(250,250,250,0.92), rgba(250,250,250,0.92)), url(${eraBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
         }}
       >
         <Card>
@@ -109,6 +115,10 @@ export const SavedPage: React.FC = () => {
         margin: '0 auto',
         padding: theme.spacing.xl,
         backgroundColor: theme.colors.background,
+        backgroundImage: `linear-gradient(rgba(250,250,250,0.92), rgba(250,250,250,0.92)), url(${eraBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <h1

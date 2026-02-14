@@ -7,6 +7,7 @@ import { Select } from '../components/ui/Select';
 import { Card } from '../components/ui/Card';
 import { useWeddingPlanStore } from '../state/useWeddingPlanStore';
 import { theme } from '../styles/theme';
+import champagneBg from '../assets/backgrounds/champagne.png';
 
 const GUEST_COUNT_OPTIONS = [
   { value: '', label: 'Select range' },
@@ -100,6 +101,10 @@ export const OnboardingPage: React.FC = () => {
         margin: '0 auto',
         padding: theme.spacing.xl,
         backgroundColor: theme.colors.background,
+        backgroundImage: `linear-gradient(rgba(250,250,250,0.92), rgba(250,250,250,0.92)), url(${champagneBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
         minHeight: '100vh',
       }}
     >

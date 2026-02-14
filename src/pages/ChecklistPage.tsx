@@ -5,6 +5,7 @@ import { ChecklistItemRow } from '../components/checklist/ChecklistItemRow';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { theme } from '../styles/theme';
+import newspaperBg from '../assets/backgrounds/newspaper.png';
 
 export const ChecklistPage: React.FC = () => {
   const wedding = useWeddingPlanStore((state) => state.wedding);
@@ -85,6 +86,10 @@ export const ChecklistPage: React.FC = () => {
         margin: '0 auto',
         padding: theme.spacing.xl,
         backgroundColor: theme.colors.background,
+        backgroundImage: `linear-gradient(rgba(250,250,250,0.92), rgba(250,250,250,0.92)), url(${newspaperBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <h1
