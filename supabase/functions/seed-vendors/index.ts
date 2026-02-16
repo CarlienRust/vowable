@@ -108,6 +108,85 @@ async function fetchOverpass(overpassUrl: string, query: string): Promise<Overpa
   return body.elements as OverpassElement[];
 }
 
+function getOverpassUrls(primary: string): string[] {
+  const urlsEnv = (Deno.env.get('OVERPASS_URLS') ?? '').trim();
+  const raw = urlsEnv
+    ? urlsEnv.split(',').map((s) => s.trim()).filter(Boolean)
+    : [
+        primary,
+        // Fallback public interpreters (best-effort)
+        'https://overpass.kumi.systems/api/interpreter',
+        'https://overpass.openstreetmap.ru/api/interpreter',
+      ];
+
+  // De-dupe while preserving order
+  const seen = new Set<string>();
+  const urls: string[] = [];
+  for (const u of raw) {
+    if (seen.has(u)) continue;
+    seen.add(u);
+    urls.push(u);
+  }
+  return urls;
+}
+
+async function fetchOverpassWithFallback(
+  overpassUrls: string[],
+  query: string,
+  meta: { type: ListingType; filter: string }
+): Promise<{ elements: OverpassElement[]; usedUrl: string; attempts: Array<Record<string, unknown>> }> {
+  const attempts: Array<Record<string, unknown>> = [];
+  let lastErr: unknown = null;
+
+  for (const url of overpassUrls) {
+    const startedAt = Date.now();
+    try {
+      const elements = await fetchOverpass(url, query);
+      attempts.push({
+        url,
+        ok: true,
+        ms: Date.now() - startedAt,
+        elements: elements.length,
+      });
+      return { elements, usedUrl: url, attempts };
+    } catch (e) {
+      lastErr = e;
+      const msg = String(e);
+      // Retry across instances for common overload scenarios
+      const retryable =
+        msg.includes('Overpass HTTP 429') ||
+        msg.includes('Overpass HTTP 502') ||
+        msg.includes('Overpass HTTP 503') ||
+        msg.includes('Overpass HTTP 504') ||
+        msg.includes('Overpass returned non-JSON');
+
+      attempts.push({
+        url,
+        ok: false,
+        ms: Date.now() - startedAt,
+        error: msg.slice(0, 500),
+        retryable,
+        meta,
+      });
+
+      if (!retryable) break;
+    }
+  }
+
+  throw new Error(
+    JSON.stringify(
+      {
+        error: 'Overpass request failed',
+        meta,
+        attempts,
+        lastError: String(lastErr).slice(0, 700),
+      },
+      null,
+      2
+    )
+  );
+}
+
 Deno.serve(async (req) => {
   try {
     const adminKey = Deno.env.get('SEED_VENDORS_ADMIN_KEY') ?? '';
@@ -119,6 +198,7 @@ Deno.serve(async (req) => {
     }
 
     const overpassUrl = Deno.env.get('OVERPASS_URL') ?? 'https://overpass-api.de/api/interpreter';
+    const overpassUrls = getOverpassUrls(overpassUrl);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceRole = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -150,7 +230,7 @@ Deno.serve(async (req) => {
       const filters = getOverpassFiltersForType(type);
       for (const filter of filters) {
         const query = `
-[out:json][timeout:60];
+[out:json][timeout:180];
 area["name"="Western Cape"]["boundary"="administrative"]->.wc;
 (
   nwr(area.wc)${filter};
@@ -158,7 +238,7 @@ area["name"="Western Cape"]["boundary"="administrative"]->.wc;
 out center tags;
         `.trim();
 
-        const elements = await fetchOverpass(overpassUrl, query);
+        const { elements } = await fetchOverpassWithFallback(overpassUrls, query, { type, filter });
         // Gentle pause to avoid hammering public Overpass instances
         await sleep(750);
 
