@@ -4,22 +4,34 @@ import { Select } from '../ui/Select';
 import { Input } from '../ui/Input';
 import { theme } from '../../styles/theme';
 
+export type ExploreCenterMode = 'wedding' | 'cape_town';
+
 interface FiltersBarProps {
   selectedType: ListingType | 'all';
   selectedPriceBand: PriceBand | 'all';
   searchQuery: string;
+  radiusKm: number;
+  centerMode: ExploreCenterMode;
+  weddingLocationAvailable: boolean;
   onTypeChange: (type: ListingType | 'all') => void;
   onPriceBandChange: (band: PriceBand | 'all') => void;
   onSearchChange: (query: string) => void;
+  onRadiusChange: (radiusKm: number) => void;
+  onCenterModeChange: (mode: ExploreCenterMode) => void;
 }
 
 export const FiltersBar: React.FC<FiltersBarProps> = ({
   selectedType,
   selectedPriceBand,
   searchQuery,
+  radiusKm,
+  centerMode,
+  weddingLocationAvailable,
   onTypeChange,
   onPriceBandChange,
   onSearchChange,
+  onRadiusChange,
+  onCenterModeChange,
 }) => {
   const typeOptions = [
     { value: 'all', label: 'All Types' },
@@ -36,6 +48,16 @@ export const FiltersBar: React.FC<FiltersBarProps> = ({
     { value: 'mid', label: 'Mid' },
     { value: 'high', label: 'High' },
   ];
+
+  const centerOptions = [
+    { value: 'cape_town', label: 'Cape Town (default)' },
+    { value: 'wedding', label: weddingLocationAvailable ? 'Wedding location' : 'Wedding location (set on profile)' },
+  ];
+
+  const radiusOptions = [10, 25, 50, 75, 100, 150, 200].map((km) => ({
+    value: String(km),
+    label: `${km} km`,
+  }));
 
   return (
     <div
@@ -72,7 +94,22 @@ export const FiltersBar: React.FC<FiltersBarProps> = ({
           value={selectedPriceBand}
           onChange={(e) => onPriceBandChange(e.target.value as PriceBand | 'all')}
         />
+        <Select
+          options={centerOptions}
+          value={centerMode}
+          onChange={(e) => onCenterModeChange(e.target.value as ExploreCenterMode)}
+        />
+        <Select
+          options={radiusOptions}
+          value={String(radiusKm)}
+          onChange={(e) => onRadiusChange(Number(e.target.value))}
+        />
       </div>
+      {!weddingLocationAvailable && centerMode === 'wedding' && (
+        <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.text.secondary }}>
+          Set your wedding location coordinates in Wedding Profile to filter around it. Using Cape Town for now.
+        </div>
+      )}
     </div>
   );
 };

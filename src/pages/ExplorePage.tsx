@@ -5,7 +5,7 @@ import { listingsService, LISTINGS_PAGE_SIZE } from '../services/listings.servic
 import { enquiriesService } from '../services/enquiries.service';
 import { filterByRadius } from '../domain/geo';
 import { ListingCard } from '../components/listings/ListingCard';
-import { FiltersBar } from '../components/listings/FiltersBar';
+import { FiltersBar, ExploreCenterMode } from '../components/listings/FiltersBar';
 import { MapPlaceholder } from '../components/listings/MapPlaceholder';
 import { EnquiryModal } from '../components/listings/EnquiryModal';
 import { Button } from '../components/ui/Button';
@@ -13,6 +13,8 @@ import { Card } from '../components/ui/Card';
 import { theme } from '../styles/theme';
 
 type ViewMode = 'list' | 'map';
+
+const CAPE_TOWN_CENTER = { lat: -33.9249, lng: 18.4241 };
 
 export const ExplorePage: React.FC = () => {
   const wedding = useWeddingPlanStore((state) => state.wedding);
@@ -29,6 +31,23 @@ export const ExplorePage: React.FC = () => {
   const [listingsLoading, setListingsLoading] = useState(true);
   const [enquiryModalListing, setEnquiryModalListing] = useState<Listing | null>(null);
   const [enquiryStatuses, setEnquiryStatuses] = useState<Record<string, string>>({});
+
+  // Explore-only filters (defaulted from Wedding Profile; changing here does not update profile)
+  const weddingLocationAvailable = !!(wedding?.locationLat && wedding?.locationLng);
+  const [radiusKm, setRadiusKm] = useState<number>(wedding?.radiusKm ?? 200);
+  const [centerMode, setCenterMode] = useState<ExploreCenterMode>(
+    weddingLocationAvailable ? 'wedding' : 'cape_town'
+  );
+
+  // Keep defaults in sync when wedding loads (only if user hasn't adjusted yet)
+  const [radiusTouched, setRadiusTouched] = useState(false);
+  const [centerTouched, setCenterTouched] = useState(false);
+  useEffect(() => {
+    if (!wedding) return;
+    if (!radiusTouched) setRadiusKm(wedding.radiusKm ?? 200);
+    if (!centerTouched) setCenterMode(weddingLocationAvailable ? 'wedding' : 'cape_town');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wedding, weddingLocationAvailable]);
 
   const fetchListingsPage = async (offset: number, append: boolean) => {
     const type = selectedType === 'all' ? undefined : selectedType;
@@ -94,22 +113,18 @@ export const ExplorePage: React.FC = () => {
       );
     }
 
-    // Filter by distance if location is set
-    if (wedding?.locationLat && wedding?.locationLng) {
-      const withDistance = filterByRadius(
-        filtered,
-        wedding.locationLat,
-        wedding.locationLng,
-        wedding.radiusKm || 200
-      );
+    // Filter by distance (use wedding coords when available; otherwise Cape Town)
+    const center =
+      centerMode === 'wedding' && wedding?.locationLat != null && wedding?.locationLng != null
+        ? { lat: wedding.locationLat, lng: wedding.locationLng }
+        : CAPE_TOWN_CENTER;
+
+    const withDistance = filterByRadius(filtered, center.lat, center.lng, radiusKm || 200);
       return withDistance.map((item) => ({
         listing: item.listing as Listing,
         distance: item.distance,
       }));
-    }
-
-    return filtered.map((listing) => ({ listing, distance: undefined }));
-  }, [listings, selectedType, selectedPriceBand, searchQuery, wedding]);
+  }, [listings, selectedType, selectedPriceBand, searchQuery, wedding, radiusKm, centerMode]);
 
   const handleSave = async (listing: Listing) => {
     await addSavedItem(listing);
@@ -180,9 +195,20 @@ export const ExplorePage: React.FC = () => {
         selectedType={selectedType}
         selectedPriceBand={selectedPriceBand}
         searchQuery={searchQuery}
+        radiusKm={radiusKm}
+        centerMode={centerMode}
+        weddingLocationAvailable={weddingLocationAvailable}
         onTypeChange={setSelectedType}
         onPriceBandChange={setSelectedPriceBand}
         onSearchChange={setSearchQuery}
+        onRadiusChange={(km) => {
+          setRadiusTouched(true);
+          setRadiusKm(km);
+        }}
+        onCenterModeChange={(mode) => {
+          setCenterTouched(true);
+          setCenterMode(mode);
+        }}
       />
 
       <Card
