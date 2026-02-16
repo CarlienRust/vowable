@@ -75,11 +75,35 @@ function pickLocationName(tags: Record<string, string> | undefined): string {
 async function fetchOverpass(overpassUrl: string, query: string): Promise<OverpassElement[]> {
   const res = await fetch(overpassUrl, {
     method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded; charset=utf-8' },
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded; charset=utf-8',
+      accept: 'application/json',
+      // Some public Overpass instances throttle/deny generic agents; a clear UA helps.
+      'user-agent': 'vowable-seed-vendors/1.0',
+    },
     body: `data=${encodeURIComponent(query)}`,
   });
-  const body = await res.json();
-  if (!res.ok) throw new Error(`Overpass HTTP ${res.status}`);
+
+  // Overpass may return XML/HTML on overload/timeouts even when requesting JSON.
+  // Always read as text first so we can surface a helpful error message.
+  const contentType = res.headers.get('content-type') ?? '';
+  const text = await res.text();
+
+  if (!res.ok) {
+    throw new Error(
+      `Overpass HTTP ${res.status} (${contentType}): ${text.slice(0, 400)}`
+    );
+  }
+
+  let body: any;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    throw new Error(
+      `Overpass returned non-JSON (${contentType}): ${text.slice(0, 400)}`
+    );
+  }
+
   if (!body || !Array.isArray(body.elements)) return [];
   return body.elements as OverpassElement[];
 }
